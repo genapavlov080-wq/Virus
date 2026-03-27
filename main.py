@@ -6,16 +6,19 @@ import logging
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg"
+BOT_TOKEN = "8522948833:AAFPgQz77GDY2YafZRtNMM9ilcxZ65_2wus"
 ADMIN_ID = 1471307057
 CARD = "4441111008011946"
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# ID каналов для обязательной подписки
+# ID каналов для обязательной подписки (ТВОИ НОВЫЕ КАНАЛЫ)
 REQUIRED_CHANNELS = [
-    {"id": -1002271436385, "url": "https://t.me/plutoniumrewiews", "name": "Plutonium Reviews"},
-    {"id": -1002544275396, "url": "https://t.me/OfficialPlutonium", "name": "Official Plutonium"}
+    {"id": -1002271436385, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"},
+    {"id": -1002544275396, "url": "https://t.me/+HOpjHc6hFUgxYTBi", "name": "Zroglikcheat"}
 ]
+
+# Канал с отзывами
+REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -126,12 +129,14 @@ def check_all_subscriptions(user_id):
     return True, None, None
 
 def get_subscribe_keyboard():
-    """Клавиатура для подписки"""
-    buttons = []
-    for channel in REQUIRED_CHANNELS:
-        buttons.append([{"text": f"{em('5927118708873892465', '📢')} Подписаться на {channel['name']}", "url": channel["url"], "icon_custom_emoji_id": "5927118708873892465"}])
-    buttons.append([{"text": f"{em('5774022692642492953', '🔄')} Проверить подписку", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}])
-    return {"inline_keyboard": buttons}
+    """Инлайн клавиатура для подписки (как в твоём примере)"""
+    return {
+        "inline_keyboard": [
+            [{"text": f"{em('5927118708873892465', '📢')} ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
+            [{"text": f"{em('5927118708873892465', '📢')} ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[1]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
+            [{"text": f"{em('5774022692642492953', '🔄')} ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
+        ]
+    }
 
 # --- ХРАНИЛИЩА ---
 waiting = {}
@@ -140,107 +145,77 @@ waiting = {}
 def get_main_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": f"{em('5156877291397055163', '🔑')} Купить ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
-             {"text": f"{em('5904630315946611415', '👤')} Мой профиль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
-            [{"text": f"{em('5938252440926163756', '⭐')} Наши отзывы", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
-             {"text": f"{em('5208539876747662991', '🆘')} Техподдержка", "url": "https://t.me/IllyaGarant", "icon_custom_emoji_id": "5208539876747662991"}]
+            [{"text": f"{em('5156877291397055163', '🔑')} Купити ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
+             {"text": f"{em('5904630315946611415', '👤')} Мій профіль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
+            [{"text": f"{em('5938252440926163756', '⭐')} Наші відгуки", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
+             {"text": f"{em('5208539876747662991', '🆘')} Техпідтримка", "url": "https://t.me/ZrogIikCheat", "icon_custom_emoji_id": "5208539876747662991"}]
         ]
     }
 
 def get_back_button(target):
     return {"inline_keyboard": [[{"text": f"{em('5960671702059848143', '⬅️')} Назад", "callback_data": target, "icon_custom_emoji_id": "5960671702059848143"}]]}
 
-# --- ЦЕНЫ PUBG ЧИТОВ ---
-PRICES = {
-    "zolo": {"1": "85 грн", "3": "180 грн", "7": "325 грн", "14": "400 грн", "30": "690 грн", "60": "1000 грн"},
-    "impact": {"1": "115 грн", "7": "480 грн", "30": "1170 грн"},
-    "king": {"1": "100 грн", "7": "425 грн", "30": "1060 грн"},
-    "inferno": {"1": "80 грн", "3": "200 грн", "7": "350 грн", "15": "530 грн", "30": "690 грн", "60": "950 грн"},
-    "zolo_cis": {"1": "70 грн", "3": "150 грн", "7": "250 грн", "14": "350 грн", "30": "700 грн", "60": "900 грн"}
-}
-
-CHEAT_NAMES = {
-    "zolo": "🔥 Zolo Cheat",
-    "impact": "⚡ Impact VIP",
-    "king": "👑 King Mod",
-    "inferno": "💥 Inferno Cheat",
-    "zolo_cis": "🎮 Zolo CIS Edition"
-}
-
-CHEAT_PHOTOS = {
-    "zolo": "https://files.catbox.moe/opz3nu.png",
-    "impact": "https://files.catbox.moe/9ztxkj.png",
-    "king": "https://files.catbox.moe/vyhlec.png",
-    "inferno": "https://files.catbox.moe/5vtpq1.png",
-    "zolo_cis": "https://files.catbox.moe/deicc2.png"
-}
-
 # --- ОСНОВНЫЕ ФОТО ---
 MAIN_PHOTO = "https://files.catbox.moe/6n69h6.jpg"
 PROFILE_PHOTO = "https://files.catbox.moe/kybf8l.png"
-REVIEWS_PHOTO = "https://files.catbox.moe/3z96th.png"
 
 # --- ОБРАБОТЧИКИ ---
 def handle_start(chat_id, user_id, username, first_name):
-    # Проверяем бан
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
     if banned and banned['banned']:
-        send_message(chat_id, "⛔ Вы заблокированы")
+        send_message(chat_id, "⛔ Ви заблоковані")
         return
     
-    # Проверяем подписку на каналы
     subscribed, channel_url, channel_name = check_all_subscriptions(user_id)
     if not subscribed:
-        text = (f"{em('6037249452824072506', '🔒')} <b>Доступ ограничен!</b>\n\n"
-                f"Для доступа к боту необходимо подписаться на канал:\n"
-                f"{em('5927118708873892465', '📢')} <b>{channel_name}</b>\n\n"
-                f"После подписки нажмите кнопку «Проверить подписку»")
+        text = (f"{em('5208806229144524155', '🔒')} <b>Доступ обмежено!</b>\n\n"
+                f"Для доступу до бота необхідно підписатися на канали:\n"
+                f"{em('5927118708873892465', '📢')} <b>{REQUIRED_CHANNELS[0]['name']}</b>\n"
+                f"{em('5927118708873892465', '📢')} <b>{REQUIRED_CHANNELS[1]['name']}</b>\n\n"
+                f"Після підписки натисніть кнопку «ПРОВЕРИТИ»")
         send_photo(chat_id, MAIN_PHOTO, text, get_subscribe_keyboard())
         return
     
-    # Сохраняем пользователя
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, first_name, subscribed_at) 
         VALUES (?, ?, ?, COALESCE((SELECT subscribed_at FROM users WHERE user_id = ?), ?))
     ''', (user_id, username, first_name, user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     conn.commit()
     
-    text = (f"{em('5339472242529045815', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
-            f"{em('5208657859499282838', '👋')} Добро пожаловать в ZroglikShop!\n"
-            f"{em('6073605466221451561', '🎯')} Здесь ты можешь купить читы для PUBG Mobile")
+    text = (f"{em('5208806229144524155', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em('5208657859499282838', '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em('6073605466221451561', '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
     send_photo(chat_id, MAIN_PHOTO, text, get_main_keyboard())
 
 def handle_check_subscription(chat_id, user_id, message_id):
-    """Проверка подписки после нажатия кнопки"""
     subscribed, _, _ = check_all_subscriptions(user_id)
     if subscribed:
-        # Сохраняем пользователя если его нет
         cursor.execute('''
             INSERT OR IGNORE INTO users (user_id, subscribed_at) 
             VALUES (?, ?)
         ''', (user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         conn.commit()
         
-        text = (f"{em('5339472242529045815', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
-                f"{em('5208657859499282838', '👋')} Добро пожаловать в ZroglikShop!\n"
-                f"{em('6073605466221451561', '🎯')} Здесь ты можешь купить читы для PUBG Mobile")
+        text = (f"{em('5208806229144524155', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+                f"{em('5208657859499282838', '👋')} Ласкаво просимо до ZroglikShop!\n"
+                f"{em('6073605466221451561', '🎯')} Тут ти можеш купити чити для PUBG Mobile")
         edit_message_caption(chat_id, message_id, text, get_main_keyboard())
-        answer_callback(message_id, "✅ Подписка подтверждена!")
+        answer_callback(message_id, "✅ Підписка підтверджена!")
     else:
-        answer_callback(message_id, "❌ Вы еще не подписались на все каналы!", True)
+        answer_callback(message_id, "❌ Ви ще не підписалися на всі канали!", True)
 
 def handle_profile(chat_id, user_id, message_id, username, first_name):
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
     if banned and banned['banned']:
-        send_message(chat_id, "⛔ Вы заблокированы")
+        send_message(chat_id, "⛔ Ви заблоковані")
         return
     
     user = cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
     res = cursor.execute('SELECT expiry_date, product_name, last_key FROM users WHERE user_id = ?', (user_id,)).fetchone()
     
-    time_left = "Нет активной подписки"
-    product = "Нет"
+    time_left = "Немає активної підписки"
+    product = "Немає"
     last_key = ""
     
     if res and res['expiry_date']:
@@ -250,17 +225,17 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
             if diff.total_seconds() > 0:
                 days = diff.days
                 hours = diff.seconds // 3600
-                time_left = f"{days} дн. {hours} ч." if days > 0 else f"{hours} ч."
-                product = res['product_name'] if res['product_name'] else "Нет"
+                time_left = f"{days} дн. {hours} год." if days > 0 else f"{hours} год."
+                product = res['product_name'] if res['product_name'] else "Немає"
                 last_key = res['last_key'] if res['last_key'] else ""
             else:
-                time_left = "❌ Истекла"
-                product = res['product_name'] if res['product_name'] else "Нет"
+                time_left = "❌ Закінчилась"
+                product = res['product_name'] if res['product_name'] else "Немає"
         except:
             pass
     
     user_name = user['first_name'] if user and user['first_name'] else str(user_id)
-    user_username = user['username'] if user and user['username'] else "Нет"
+    user_username = user['username'] if user and user['username'] else "Немає"
     
     text = (f"{em('5904630315946611415', '👤')} <b>ПРОФІЛЬ</b>\n\n"
             f"{em('6032693626394382504', '🆔')} <b>ID:</b> <code>{user_id}</code>\n"
@@ -277,7 +252,7 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
 def handle_reviews(chat_id, message_id):
     kb = {
         "inline_keyboard": [
-            [{"text": f"{em('6028171274939797252', '🔗')} Канал с отзывами", "url": "https://t.me/plutoniumrewiews", "icon_custom_emoji_id": "6028171274939797252"}],
+            [{"text": f"{em('6028171274939797252', '🔗')} Канал з відгуками", "url": REVIEWS_CHANNEL_URL, "icon_custom_emoji_id": "6028171274939797252"}],
             [{"text": f"{em('5960671702059848143', '⬅️')} Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
@@ -299,8 +274,33 @@ def handle_buy_key(chat_id, message_id):
     edit_message_caption(chat_id, message_id, text, kb)
 
 def show_cheat(chat_id, message_id, cheat):
+    # Цены для читов
+    PRICES = {
+        "zolo": {"1": "85 грн", "3": "180 грн", "7": "325 грн", "14": "400 грн", "30": "690 грн", "60": "1000 грн"},
+        "impact": {"1": "115 грн", "7": "480 грн", "30": "1170 грн"},
+        "king": {"1": "100 грн", "7": "425 грн", "30": "1060 грн"},
+        "inferno": {"1": "80 грн", "3": "200 грн", "7": "350 грн", "15": "530 грн", "30": "690 грн", "60": "950 грн"},
+        "zolo_cis": {"1": "70 грн", "3": "150 грн", "7": "250 грн", "14": "350 грн", "30": "700 грн", "60": "900 грн"}
+    }
+    
+    CHEAT_NAMES = {
+        "zolo": "🔥 Zolo Cheat",
+        "impact": "⚡ Impact VIP",
+        "king": "👑 King Mod",
+        "inferno": "💥 Inferno Cheat",
+        "zolo_cis": "🎮 Zolo CIS Edition"
+    }
+    
+    CHEAT_PHOTOS = {
+        "zolo": "https://files.catbox.moe/opz3nu.png",
+        "impact": "https://files.catbox.moe/9ztxkj.png",
+        "king": "https://files.catbox.moe/vyhlec.png",
+        "inferno": "https://files.catbox.moe/5vtpq1.png",
+        "zolo_cis": "https://files.catbox.moe/deicc2.png"
+    }
+    
     desc = f"{CHEAT_NAMES[cheat]}\n\n"
-    desc += f"{em('5339472242529045815', '💰')} <b>Ціни:</b>\n"
+    desc += f"{em('5208806229144524155', '💰')} <b>Ціни:</b>\n"
     
     for days, price in PRICES[cheat].items():
         days_text = f"{days} дн." if days != "1" else "1 день"
@@ -318,6 +318,30 @@ def show_cheat(chat_id, message_id, cheat):
     edit_message_caption(chat_id, message_id, desc, {"inline_keyboard": buttons})
 
 def handle_select_period(chat_id, message_id, cheat, days):
+    PRICES = {
+        "zolo": {"1": "85 грн", "3": "180 грн", "7": "325 грн", "14": "400 грн", "30": "690 грн", "60": "1000 грн"},
+        "impact": {"1": "115 грн", "7": "480 грн", "30": "1170 грн"},
+        "king": {"1": "100 грн", "7": "425 грн", "30": "1060 грн"},
+        "inferno": {"1": "80 грн", "3": "200 грн", "7": "350 грн", "15": "530 грн", "30": "690 грн", "60": "950 грн"},
+        "zolo_cis": {"1": "70 грн", "3": "150 грн", "7": "250 грн", "14": "350 грн", "30": "700 грн", "60": "900 грн"}
+    }
+    
+    CHEAT_NAMES = {
+        "zolo": "🔥 Zolo Cheat",
+        "impact": "⚡ Impact VIP",
+        "king": "👑 King Mod",
+        "inferno": "💥 Inferno Cheat",
+        "zolo_cis": "🎮 Zolo CIS Edition"
+    }
+    
+    CHEAT_PHOTOS = {
+        "zolo": "https://files.catbox.moe/opz3nu.png",
+        "impact": "https://files.catbox.moe/9ztxkj.png",
+        "king": "https://files.catbox.moe/vyhlec.png",
+        "inferno": "https://files.catbox.moe/5vtpq1.png",
+        "zolo_cis": "https://files.catbox.moe/deicc2.png"
+    }
+    
     waiting[f"{chat_id}_product"] = cheat
     waiting[f"{chat_id}_days"] = days
     
@@ -336,6 +360,22 @@ def handle_select_period(chat_id, message_id, cheat, days):
     edit_message_caption(chat_id, message_id, desc, kb)
 
 def handle_bank_payment(chat_id, message_id, cheat, days):
+    PRICES = {
+        "zolo": {"1": "85 грн", "3": "180 грн", "7": "325 грн", "14": "400 грн", "30": "690 грн", "60": "1000 грн"},
+        "impact": {"1": "115 грн", "7": "480 грн", "30": "1170 грн"},
+        "king": {"1": "100 грн", "7": "425 грн", "30": "1060 грн"},
+        "inferno": {"1": "80 грн", "3": "200 грн", "7": "350 грн", "15": "530 грн", "30": "690 грн", "60": "950 грн"},
+        "zolo_cis": {"1": "70 грн", "3": "150 грн", "7": "250 грн", "14": "350 грн", "30": "700 грн", "60": "900 грн"}
+    }
+    
+    CHEAT_PHOTOS = {
+        "zolo": "https://files.catbox.moe/opz3nu.png",
+        "impact": "https://files.catbox.moe/9ztxkj.png",
+        "king": "https://files.catbox.moe/vyhlec.png",
+        "inferno": "https://files.catbox.moe/5vtpq1.png",
+        "zolo_cis": "https://files.catbox.moe/deicc2.png"
+    }
+    
     waiting[f"{chat_id}_product"] = cheat
     waiting[f"{chat_id}_days"] = days
     
@@ -407,6 +447,44 @@ def handle_broadcast(chat_id, user_id):
     send_message(chat_id, f"{em('5208846279714560254', '📢')} <b>Надішліть повідомлення для розсилки</b>")
 
 # --- ОБРАБОТКА АДМИН-РЕШЕНИЙ ---
+def handle_admin_decision(chat_id, data, user_id):
+    parts = data.split("_")
+    if parts[1] == "ok":
+        target_id = int(parts[2])
+        product = waiting.get(f"{target_id}_product", "Unknown")
+        days = waiting.get(f"{target_id}_days", "0")
+        
+        waiting[f"admin_{target_id}_product"] = product
+        waiting[f"admin_{target_id}_days"] = days
+        waiting[f"admin_target"] = target_id
+        
+        send_message(chat_id, f"{em('6037373985400819577', '📎')} <b>Надішліть файл з читом</b> (або текст з інструкцією)")
+        waiting[f"admin_{target_id}_waiting"] = "file"
+    else:
+        target_id = int(parts[2])
+        send_message(target_id, f"{em('5208480322731137426', '❌')} Ваша оплата була відхилена адміністратором.")
+        send_message(chat_id, f"{em('5208480322731137426', '❌')} Відхилено")
+
+def handle_admin_file(chat_id, user_id, msg):
+    target_id = waiting.get(f"admin_target", 0)
+    if not target_id:
+        return
+    
+    file_id = None
+    file_text = None
+    
+    if 'document' in msg:
+        file_id = msg['document']['file_id']
+    elif 'photo' in msg:
+        file_id = msg['photo'][-1]['file_id']
+    else:
+        file_text = msg.get('text', '')
+    
+    waiting[f"admin_{target_id}_file"] = file_id
+    waiting[f"admin_{target_id}_file_text"] = file_text
+    waiting[f"admin_{target_id}_waiting"] = "key"
+    send_message(chat_id, f"{em('6048733173171359488', '🔑')} <b>Введіть ключ активації</b>")
+
 def handle_admin_key(chat_id, user_id, key):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
@@ -418,7 +496,7 @@ def handle_admin_key(chat_id, user_id, key):
     file_text = waiting.get(f"admin_{target_id}_file_text")
     
     expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
-    product_name = CHEAT_NAMES.get(product, "Zroglik")
+    product_name = product.capitalize() if product != "Unknown" else "Zroglik"
     
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, expiry_date, product_name, subscribed_at, banned, last_key) 
@@ -554,7 +632,7 @@ def main():
                                 ADMIN_ID,
                                 msg['photo'][-1]['file_id'],
                                 f"{em('6039486778597970865', '🔔')} <b>Чек від {user_id}</b>\n"
-                                f"{em('6041730074376410123', '📦')} Товар: {CHEAT_NAMES.get(product, 'Unknown')}\n"
+                                f"{em('6041730074376410123', '📦')} Товар: {product}\n"
                                 f"{em('5891211339170326418', '⏳')} Тариф: {days} днів",
                                 adm_kb
                             )
