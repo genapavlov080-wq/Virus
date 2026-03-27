@@ -6,10 +6,16 @@ import logging
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg"
+BOT_TOKEN = "8522948833:AAFPgQz77GDY2YafZRtNMM9ilcxZ65_2wus"
 ADMIN_ID = 1471307057
 CARD = "4441111008011946"
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+# ID каналов для обязательной подписки
+REQUIRED_CHANNELS = [
+    {"id": -1002271436385, "url": "https://t.me/plutoniumrewiews", "name": "Plutonium Reviews"},
+    {"id": -1002544275396, "url": "https://t.me/OfficialPlutonium", "name": "Official Plutonium"}
+]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -103,6 +109,30 @@ def answer_callback(callback_id, text=None, show_alert=False):
 def em(emoji_id, char):
     return f'<tg-emoji emoji-id="{emoji_id}">{char}</tg-emoji>'
 
+# --- ПРОВЕРКА ПОДПИСКИ ---
+def check_all_subscriptions(user_id):
+    """Проверяет подписку на все обязательные каналы"""
+    for channel in REQUIRED_CHANNELS:
+        try:
+            result = api("getChatMember", {"chat_id": channel["id"], "user_id": user_id})
+            if not result.get('ok'):
+                return False, channel["url"], channel["name"]
+            status = result['result']['status']
+            if status not in ['member', 'administrator', 'creator']:
+                return False, channel["url"], channel["name"]
+        except Exception as e:
+            logger.error(f"Check subscription error: {e}")
+            return False, channel["url"], channel["name"]
+    return True, None, None
+
+def get_subscribe_keyboard():
+    """Клавиатура для подписки"""
+    buttons = []
+    for channel in REQUIRED_CHANNELS:
+        buttons.append([{"text": f"{em('5927118708873892465', '📢')} Подписаться на {channel['name']}", "url": channel["url"], "icon_custom_emoji_id": "5927118708873892465"}])
+    buttons.append([{"text": f"{em('5774022692642492953', '🔄')} Проверить подписку", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}])
+    return {"inline_keyboard": buttons}
+
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
@@ -152,11 +182,23 @@ REVIEWS_PHOTO = "https://files.catbox.moe/3z96th.png"
 
 # --- ОБРАБОТЧИКИ ---
 def handle_start(chat_id, user_id, username, first_name):
+    # Проверяем бан
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
     if banned and banned['banned']:
         send_message(chat_id, "⛔ Вы заблокированы")
         return
     
+    # Проверяем подписку на каналы
+    subscribed, channel_url, channel_name = check_all_subscriptions(user_id)
+    if not subscribed:
+        text = (f"{em('6037249452824072506', '🔒')} <b>Доступ ограничен!</b>\n\n"
+                f"Для доступа к боту необходимо подписаться на канал:\n"
+                f"{em('5927118708873892465', '📢')} <b>{channel_name}</b>\n\n"
+                f"После подписки нажмите кнопку «Проверить подписку»")
+        send_photo(chat_id, MAIN_PHOTO, text, get_subscribe_keyboard())
+        return
+    
+    # Сохраняем пользователя
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, first_name, subscribed_at) 
         VALUES (?, ?, ?, COALESCE((SELECT subscribed_at FROM users WHERE user_id = ?), ?))
@@ -168,6 +210,25 @@ def handle_start(chat_id, user_id, username, first_name):
             f"{em('6073605466221451561', '🎯')} Здесь ты можешь купить читы для PUBG Mobile")
     
     send_photo(chat_id, MAIN_PHOTO, text, get_main_keyboard())
+
+def handle_check_subscription(chat_id, user_id, message_id):
+    """Проверка подписки после нажатия кнопки"""
+    subscribed, _, _ = check_all_subscriptions(user_id)
+    if subscribed:
+        # Сохраняем пользователя если его нет
+        cursor.execute('''
+            INSERT OR IGNORE INTO users (user_id, subscribed_at) 
+            VALUES (?, ?)
+        ''', (user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        conn.commit()
+        
+        text = (f"{em('5339472242529045815', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+                f"{em('5208657859499282838', '👋')} Добро пожаловать в ZroglikShop!\n"
+                f"{em('6073605466221451561', '🎯')} Здесь ты можешь купить читы для PUBG Mobile")
+        edit_message_caption(chat_id, message_id, text, get_main_keyboard())
+        answer_callback(message_id, "✅ Подписка подтверждена!")
+    else:
+        answer_callback(message_id, "❌ Вы еще не подписались на все каналы!", True)
 
 def handle_profile(chat_id, user_id, message_id, username, first_name):
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
@@ -299,12 +360,6 @@ def handle_send_receipt(chat_id, message_id, user_id):
     send_message(chat_id, f"{em('5769126056262898415', '📸')} <b>Надішліть скріншот чека</b> (одним фото)")
 
 # --- АДМИН-КОМАНДЫ ---
-def handle_set_status(chat_id, text):
-    new_status = text.replace("/set_status ", "").strip()
-    cursor.execute('UPDATE settings SET value = ? WHERE key = "cheat_status"', (new_status,))
-    conn.commit()
-    send_message(chat_id, f"{em('5938252440926163756', '✅')} Статус обновлен на: {new_status}")
-
 def handle_ban(chat_id, text):
     args = text.split(maxsplit=1)
     if len(args) < 2:
@@ -352,44 +407,6 @@ def handle_broadcast(chat_id, user_id):
     send_message(chat_id, f"{em('5208846279714560254', '📢')} <b>Надішліть повідомлення для розсилки</b>")
 
 # --- ОБРАБОТКА АДМИН-РЕШЕНИЙ ---
-def handle_admin_decision(chat_id, data, user_id):
-    parts = data.split("_")
-    if parts[1] == "ok":
-        target_id = int(parts[2])
-        product = waiting.get(f"{target_id}_product", "Unknown")
-        days = waiting.get(f"{target_id}_days", "0")
-        
-        waiting[f"admin_{target_id}_product"] = product
-        waiting[f"admin_{target_id}_days"] = days
-        waiting[f"admin_target"] = target_id
-        
-        send_message(chat_id, f"{em('6037373985400819577', '📎')} <b>Надішліть файл з читом</b> (або текст з інструкцією)")
-        waiting[f"admin_{target_id}_waiting"] = "file"
-    else:
-        target_id = int(parts[2])
-        send_message(target_id, f"{em('5208480322731137426', '❌')} Ваша оплата була відхилена адміністратором.")
-        send_message(chat_id, f"{em('5208480322731137426', '❌')} Відхилено")
-
-def handle_admin_file(chat_id, user_id, msg):
-    target_id = waiting.get(f"admin_target", 0)
-    if not target_id:
-        return
-    
-    file_id = None
-    file_text = None
-    
-    if 'document' in msg:
-        file_id = msg['document']['file_id']
-    elif 'photo' in msg:
-        file_id = msg['photo'][-1]['file_id']
-    else:
-        file_text = msg.get('text', '')
-    
-    waiting[f"admin_{target_id}_file"] = file_id
-    waiting[f"admin_{target_id}_file_text"] = file_text
-    waiting[f"admin_{target_id}_waiting"] = "key"
-    send_message(chat_id, f"{em('6048733173171359488', '🔑')} <b>Введіть ключ активації</b>")
-
 def handle_admin_key(chat_id, user_id, key):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
@@ -430,6 +447,7 @@ def handle_admin_key(chat_id, user_id, key):
     for k in list(waiting.keys()):
         if f"admin_{target_id}" in k or k == "admin_target":
             del waiting[k]
+
 # --- ГЛАВНЫЙ ЦИКЛ ---
 def main():
     logger.info("🚀 Запуск ZroglikShop Bot")
@@ -455,6 +473,8 @@ def main():
                         
                         if data == "start":
                             handle_start(chat_id, user_id, username, first_name)
+                        elif data == "check_sub":
+                            handle_check_subscription(chat_id, user_id, message_id)
                         elif data == "profile":
                             handle_profile(chat_id, user_id, message_id, username, first_name)
                         elif data == "show_reviews":
@@ -555,4 +575,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-             
