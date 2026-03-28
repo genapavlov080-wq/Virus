@@ -347,6 +347,8 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
     
     user = cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
     
+    logger.info(f"Profile data for {user_id}: {dict(user) if user else 'None'}")
+    
     time_left = "Немає активної підписки"
     product = "Немає"
     last_key = ""
@@ -647,11 +649,9 @@ def handle_admin_key(chat_id, user_id, key):
             send_message(target_id, user_text)
         
         send_message(chat_id, admin_text)
-        logger.info(f"✅ Выдан ключ {key} пользователю {target_id} на {days} дней")
         
     except Exception as e:
-        logger.error(f"Error sending to user {target_id}: {e}")
-        send_message(chat_id, f"❌ Помилка при відправці: {e}")
+        send_message(chat_id, f"❌ Помилка: {e}")
     
     for k in list(waiting.keys()):
         if f"admin_{target_id}" in k or k == "admin_target" or f"admin_waiting_for_{target_id}" in k:
