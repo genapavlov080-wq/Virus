@@ -58,7 +58,7 @@ cursor.execute('''
 conn.commit()
 
 # --- ФУНКЦИИ API ---
-def api(method, data=None, timeout=60):
+def api(method, data=None, timeout=30):
     url = f"{API_URL}/{method}"
     try:
         if data:
@@ -103,11 +103,11 @@ def edit_message_caption(chat_id, message_id, caption, reply_markup=None):
         data["reply_markup"] = reply_markup
     return api("editMessageCaption", data)
 
-def get_updates(offset=None, timeout=60):
+def get_updates(offset=None, timeout=30):
     data = {"timeout": timeout, "allowed_updates": ["message", "callback_query"]}
     if offset is not None:
         data["offset"] = offset
-    return api("getUpdates", data, timeout=timeout+5)
+    return api("getUpdates", data)
 
 def answer_callback(callback_id, text=None, show_alert=False):
     data = {"callback_query_id": callback_id}
@@ -155,7 +155,7 @@ def check_crypto_payment(payment_id):
         print(f"Check payment error: {e}")
     return None
 
-# --- ПРОВЕРКА ПОДПИСКИ (ДЛЯ ОДНОГО КАНАЛА) ---
+# --- ПРОВЕРКА ПОДПИСКИ ---
 def check_all_subscriptions(user_id):
     if user_id == ADMIN_ID:
         return True, None, None
@@ -259,10 +259,9 @@ def get_admin_decision_keyboard(user_id):
         ]
     }
 
-# --- ОСНОВНЫЕ ФОТО (ПРОВЕРЕННЫЕ ССЫЛКИ) ---
+# --- ОСНОВНЫЕ ФОТО ---
 MAIN_PHOTO = "https://files.catbox.moe/6n69h6.jpg"
 PROFILE_PHOTO = "https://files.catbox.moe/kybf8l.png"
-REVIEWS_PHOTO = "https://files.catbox.moe/3z96th.png"
 
 # --- ЦЕНЫ ---
 PRICES = {
@@ -298,11 +297,12 @@ def handle_start(chat_id, user_id, username, first_name, message_id=None):
     
     subscribed, _, _ = check_all_subscriptions(user_id)
     if not subscribed:
+        # Отправляем ТОЛЬКО текст, без фото
         text = (f"{em('5208806229144524155', '🔒')} <b>Доступ обмежено!</b>\n\n"
                 f"Для доступу до бота необхідно підписатися на канал:\n"
                 f"📢 <b>{REQUIRED_CHANNELS[0]['name']}</b>\n\n"
                 f"Після підписки натисніть кнопку «ПРОВЕРИТИ»")
-        send_photo(chat_id, MAIN_PHOTO, text, get_subscribe_keyboard())
+        send_message(chat_id, text, get_subscribe_keyboard())
         return
     
     cursor.execute('''
@@ -662,7 +662,7 @@ def main():
     
     while True:
         try:
-            updates = get_updates(offset, timeout=60)
+            updates = get_updates(offset, timeout=30)
             
             if updates.get('ok') and updates.get('result'):
                 for update in updates['result']:
