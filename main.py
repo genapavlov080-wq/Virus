@@ -87,7 +87,7 @@ EMOJI = {
     "broadcast": "5208539876747662991"
 }
 
-# --- ФУНКЦИЯ ДЛЯ PREMIUM ЭМОДЗИ В ТЕКСТЕ (как в примере) ---
+# --- ФУНКЦИЯ ДЛЯ PREMIUM ЭМОДЗИ В ТЕКСТЕ ---
 def em(emoji_id, fallback_emoji):
     return f'<tg-emoji emoji-id="{emoji_id}">{fallback_emoji}</tg-emoji>'
 
@@ -134,7 +134,7 @@ logger = logging.getLogger(__name__)
 waiting = {}
 user_selection = {}
 
-# --- REPLY КЛАВИАТУРА ГЛАВНОГО МЕНЮ С PREMIUM ЭМОДЗИ ---
+# --- REPLY КЛАВИАТУРА ГЛАВНОГО МЕНЮ С PREMIUM ЭМОДЗИ (широкие кнопки) ---
 def get_main_keyboard(is_admin=False):
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
@@ -681,7 +681,7 @@ async def check_crypto(callback: types.CallbackQuery):
                     f"{em(EMOJI['calendar'], '📅')} <b>Подписка до:</b> {expiry}")
             
             await callback.message.edit_text(text, parse_mode="HTML")
-            await bot.send_message(ADMIN_ID, f"{em(EMOJI['money'], '💰')} <b>Новый крипто-платёж</b>\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
+            await bot.send_message(ADMIN_ID, f"{em(EMOJI['money'], '💰')} <b>Новый крипто-платёж</b>\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}", parse_mode="HTML")
             await callback.answer("✅ Оплата подтверждена!")
     else:
         await callback.answer("⏳ Платёж ещё не подтверждён", show_alert=True)
@@ -706,10 +706,11 @@ async def handle_receipt_photo(message: types.Message):
         await bot.send_photo(
             ADMIN_ID,
             photo,
-            caption=f"🔔 <b>Чек від {user_id}</b>\n📦 Товар: {product}\n⏳ Тариф: {days} днів",
-            reply_markup=get_admin_decision_keyboard(user_id)
+            caption=f"{em(EMOJI['photo'], '🔔')} <b>Чек від {user_id}</b>\n{em(EMOJI['product_emoji'], '📦')} Товар: {product}\n{em(EMOJI['time'], '⏳')} Тариф: {days} днів",
+            reply_markup=get_admin_decision_keyboard(user_id),
+            parse_mode="HTML"
         )
-        await message.answer(f"✅ Чек відправлено адміністратору! Очікуйте підтвердження.")
+        await message.answer(f"{em(EMOJI['success'], '✅')} Чек відправлено адміністратору! Очікуйте підтвердження.", parse_mode="HTML")
 
 # --- АДМИН-ОБРАБОТЧИКИ ДЛЯ ЧЕКОВ ---
 @dp.callback_query(F.data.startswith("adm_ok_"))
@@ -723,17 +724,17 @@ async def admin_approve(callback: types.CallbackQuery):
     waiting[f"admin_{callback.from_user.id}_days"] = days
     waiting[f"admin_{callback.from_user.id}_state"] = "waiting_file"
     
-    await callback.message.answer(f"📎 <b>Надішліть файл з читом</b> (або текст з інструкцією)")
+    await callback.message.answer(f"{em(EMOJI['receipt'], '📎')} <b>Надішліть файл з читом</b> (або текст з інструкцією)", parse_mode="HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("adm_no_"))
 async def admin_reject(callback: types.CallbackQuery):
     target_id = int(callback.data.split("_")[2])
     try:
-        await bot.send_message(target_id, f"❌ Ваша оплата була відхилена адміністратором.")
+        await bot.send_message(target_id, f"{em(EMOJI['cancel'], '❌')} Ваша оплата була відхилена адміністратором.", parse_mode="HTML")
     except:
         pass
-    await callback.message.answer(f"❌ Відхилено")
+    await callback.message.answer(f"{em(EMOJI['cancel'], '❌')} Відхилено", parse_mode="HTML")
     await callback.answer()
 
 @dp.message(F.document | F.text)
@@ -760,7 +761,7 @@ async def admin_file_or_key(message: types.Message):
         waiting[f"admin_{user_id}_file_text"] = file_text
         waiting[f"admin_{user_id}_state"] = "waiting_key"
         
-        await message.answer(f"🔑 <b>Введіть ключ активації</b>")
+        await message.answer(f"{em(EMOJI['key'], '🔑')} <b>Введіть ключ активації</b>", parse_mode="HTML")
     
     elif state == "waiting_key" and target_id:
         key = message.text
@@ -801,22 +802,21 @@ async def admin_file_or_key(message: types.Message):
         
         try:
             if file_id:
-                await bot.send_document(target_id, file_id, caption=user_text)
+                await bot.send_document(target_id, file_id, caption=user_text, parse_mode="HTML")
             elif file_text:
-                await bot.send_message(target_id, user_text + f"\n\n📝 {file_text}")
+                await bot.send_message(target_id, user_text + f"\n\n{em(EMOJI['receipt'], '📝')} {file_text}", parse_mode="HTML")
             else:
-                await bot.send_message(target_id, user_text)
+                await bot.send_message(target_id, user_text, parse_mode="HTML")
             
-            await message.answer(f"✅ <b>Ключ видано!</b>\n"
-                                f"👤 Користувач: {target_id}\n"
-                                f"📦 Товар: {product_name}\n"
-                                f"📅 {days} дн. до {expiry_display}\n"
-                                f"🔑 Ключ: <code>{key}</code>")
+            await message.answer(f"{em(EMOJI['success'], '✅')} <b>Ключ видано!</b>\n"
+                                f"{em(EMOJI['profile'], '👤')} Користувач: {target_id}\n"
+                                f"{em(EMOJI['product_emoji'], '📦')} Товар: {product_name}\n"
+                                f"{em(EMOJI['calendar'], '📅')} {days} дн. до {expiry_display}\n"
+                                f"{em(EMOJI['key'], '🔑')} Ключ: <code>{key}</code>", parse_mode="HTML")
             
         except Exception as e:
-            await message.answer(f"❌ Помилка: {e}")
+            await message.answer(f"{em(EMOJI['cancel'], '❌')} Помилка: {e}", parse_mode="HTML")
         
-        # Очищаем временные данные
         for k in list(waiting.keys()):
             if k.startswith(f"admin_{user_id}_"):
                 del waiting[k]
@@ -839,7 +839,7 @@ async def handle_admin_text_commands(message: types.Message):
         waiting[f"{user_id}_ban"] = None
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            await message.answer("❌ Неправильний формат! Використовуйте: ID причина")
+            await message.answer("❌ Неправильний формат! Використовуйте: ID причина", parse_mode="HTML")
             return
         
         try:
@@ -850,13 +850,13 @@ async def handle_admin_text_commands(message: types.Message):
             conn.commit()
             
             try:
-                await bot.send_message(target_id, f"⛔️ <b>Вы заблокированы</b>\nПричина: {reason}")
+                await bot.send_message(target_id, f"{em(EMOJI['ban'], '⛔️')} <b>Вы заблокированы</b>\nПричина: {reason}", parse_mode="HTML")
             except:
                 pass
             
-            await message.answer(f"✅ Пользователь {target_id} забанен")
+            await message.answer(f"{em(EMOJI['success'], '✅')} Пользователь {target_id} забанен", parse_mode="HTML")
         except ValueError:
-            await message.answer("❌ Неверный формат ID")
+            await message.answer("❌ Неверный формат ID", parse_mode="HTML")
     
     # Обработка разбана
     elif waiting.get(f"{user_id}_unban") == "waiting":
@@ -867,13 +867,13 @@ async def handle_admin_text_commands(message: types.Message):
             conn.commit()
             
             try:
-                await bot.send_message(target_id, f"✅ <b>Вы разблокированы</b>")
+                await bot.send_message(target_id, f"{em(EMOJI['unban'], '✅')} <b>Вы разблокированы</b>", parse_mode="HTML")
             except:
                 pass
             
-            await message.answer(f"✅ Пользователь {target_id} разблокирован")
+            await message.answer(f"{em(EMOJI['success'], '✅')} Пользователь {target_id} разблокирован", parse_mode="HTML")
         except ValueError:
-            await message.answer("❌ Неверный формат ID")
+            await message.answer("❌ Неверный формат ID", parse_mode="HTML")
     
     # Обработка рассылки
     elif waiting.get(f"{user_id}_broadcast") == "waiting":
@@ -888,15 +888,15 @@ async def handle_admin_text_commands(message: types.Message):
         for u in users:
             try:
                 if message.text:
-                    await bot.send_message(u['user_id'], message.text)
+                    await bot.send_message(u['user_id'], message.text, parse_mode="HTML")
                 elif message.photo:
-                    await bot.send_photo(u['user_id'], message.photo[-1].file_id, caption=message.caption)
+                    await bot.send_photo(u['user_id'], message.photo[-1].file_id, caption=message.caption, parse_mode="HTML")
                 sent += 1
             except:
                 pass
             await asyncio.sleep(0.05)
         
-        await message.answer(f"✅ Розсилка завершена!\nВідправлено: {sent}")
+        await message.answer(f"{em(EMOJI['success'], '✅')} Розсилка завершена!\nВідправлено: {sent}", parse_mode="HTML")
 
 @dp.message(Command("cancel"))
 async def cancel_operation(message: types.Message):
