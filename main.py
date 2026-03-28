@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 # --- СБРОС ВЕБХУКА ---
 try:
-    urllib.request.urlopen(f"{API_URL}/deleteWebhook?drop_pending_updates=true", timeout=5)
-    urllib.request.urlopen(f"{API_URL}/getUpdates?offset=-1", timeout=5)
+    urllib.request.urlopen(f"{API_URL}/deleteWebhook?drop_pending_updates=true", timeout=10)
+    urllib.request.urlopen(f"{API_URL}/getUpdates?offset=-1", timeout=10)
     time.sleep(1)
     print("✅ Webhook сброшен")
 except:
@@ -52,7 +52,7 @@ cursor.execute('''
 conn.commit()
 
 # --- ФУНКЦИИ API ---
-def api(method, data=None):
+def api(method, data=None, timeout=60):
     url = f"{API_URL}/{method}"
     try:
         req = urllib.request.Request(
@@ -61,7 +61,7 @@ def api(method, data=None):
             headers={'Content-Type': 'application/json'} if data else {},
             method='POST'
         )
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
             return json.loads(response.read().decode())
     except Exception as e:
         logger.error(f"API error: {e}")
@@ -93,11 +93,11 @@ def edit_message_caption(chat_id, message_id, caption, reply_markup=None):
         data["reply_markup"] = json.dumps(reply_markup)
     return api("editMessageCaption", data)
 
-def get_updates(offset=None, timeout=30):
+def get_updates(offset=None, timeout=60):
     data = {"timeout": timeout}
     if offset is not None:
         data["offset"] = offset
-    return api("getUpdates", data)
+    return api("getUpdates", data, timeout=timeout+5)
 
 def answer_callback(callback_id, text=None, show_alert=False):
     data = {"callback_query_id": callback_id}
@@ -130,40 +130,41 @@ def check_all_subscriptions(user_id):
     return True, None, None
 
 def get_subscribe_keyboard():
+    """Инлайн клавиатура для подписки - ТОЛЬКО TG PREMIUM ЭМОДЗИ"""
     return {
         "inline_keyboard": [
-            [{"text": "📢 ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
-            [{"text": "📢 ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[1]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
-            [{"text": "🔄 ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
+            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
+            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[1]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
+            [{"text": "ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
         ]
     }
 
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
-# --- КНОПКИ ---
+# --- КНОПКИ (ТОЛЬКО TG PREMIUM ЭМОДЗИ, БЕЗ ОБЫЧНЫХ) ---
 def get_main_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "🔑 Купити ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
-             {"text": "👤 Мій профіль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
-            [{"text": "⭐ Наші відгуки", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
-             {"text": "🆘 Техпідтримка", "url": "https://t.me/ZrogIikCheat", "icon_custom_emoji_id": "5208539876747662991"}]
+            [{"text": "Купити ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
+             {"text": "Мій профіль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
+            [{"text": "Наші відгуки", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
+             {"text": "Техпідтримка", "url": "https://t.me/ZrogIikCheat", "icon_custom_emoji_id": "5208539876747662991"}]
         ]
     }
 
 def get_back_button(target):
-    return {"inline_keyboard": [[{"text": "⬅️ Назад", "callback_data": target, "icon_custom_emoji_id": "5960671702059848143"}]]}
+    return {"inline_keyboard": [[{"text": "Назад", "callback_data": target, "icon_custom_emoji_id": "5960671702059848143"}]]}
 
 def get_cheats_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "🔥 Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5451653043089070124"}],
-            [{"text": "⚡ Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5276079251089547977"}],
-            [{"text": "👑 King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "6172520285330214110"}],
-            [{"text": "💥 Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5296273418516187626"}],
-            [{"text": "🎮 Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5451841459009379088"}],
-            [{"text": "⬅️ Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
+            [{"text": "Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5451653043089070124"}],
+            [{"text": "Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5276079251089547977"}],
+            [{"text": "King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "6172520285330214110"}],
+            [{"text": "Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5296273418516187626"}],
+            [{"text": "Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5451841459009379088"}],
+            [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
@@ -179,38 +180,38 @@ def get_period_keyboard(cheat):
     for days in PRICES[cheat].keys():
         days_text = f"{days} дн." if days != "1" else "1 день"
         buttons.append([{"text": days_text, "callback_data": f"period_{cheat}_{days}", "icon_custom_emoji_id": "5393330385096575682"}])
-    buttons.append([{"text": "⬅️ Назад", "callback_data": "buy_key", "icon_custom_emoji_id": "5960671702059848143"}])
+    buttons.append([{"text": "Назад", "callback_data": "buy_key", "icon_custom_emoji_id": "5960671702059848143"}])
     return {"inline_keyboard": buttons}
 
 def get_payment_keyboard(cheat, days):
     return {
         "inline_keyboard": [
-            [{"text": "🇺🇦 Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
-            [{"text": "⬅️ Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
+            [{"text": "Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
+            [{"text": "Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
 def get_receipt_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "✅ Я оплатив", "callback_data": "send_receipt", "icon_custom_emoji_id": "5258205968025525531"}],
-            [{"text": "❌ Скасувати", "callback_data": "start", "icon_custom_emoji_id": "5208480322731137426"}]
+            [{"text": "Я оплатив", "callback_data": "send_receipt", "icon_custom_emoji_id": "5258205968025525531"}],
+            [{"text": "Скасувати", "callback_data": "start", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
 
 def get_reviews_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "🔗 Канал з відгуками", "url": REVIEWS_CHANNEL_URL, "icon_custom_emoji_id": "6028171274939797252"}],
-            [{"text": "⬅️ Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
+            [{"text": "Канал з відгуками", "url": REVIEWS_CHANNEL_URL, "icon_custom_emoji_id": "6028171274939797252"}],
+            [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
 def get_admin_decision_keyboard(user_id):
     return {
         "inline_keyboard": [
-            [{"text": "✅ Одобрити", "callback_data": f"adm_ok_{user_id}", "icon_custom_emoji_id": "5208657859499282838"}],
-            [{"text": "❌ Відхилити", "callback_data": f"adm_no_{user_id}", "icon_custom_emoji_id": "5208480322731137426"}]
+            [{"text": "Одобрити", "callback_data": f"adm_ok_{user_id}", "icon_custom_emoji_id": "5208657859499282838"}],
+            [{"text": "Відхилити", "callback_data": f"adm_no_{user_id}", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
 
@@ -518,11 +519,11 @@ def main():
     offset = 0
     while True:
         try:
-            updates = get_updates(offset, timeout=30)
+            updates = get_updates(offset, timeout=60)
             if updates.get('ok') and updates.get('result'):
                 for update in updates['result']:
                     offset = update['update_id'] + 1
-                    logger.info(f"Update: {update}")
+                    logger.info(f"Update ID: {offset}")
                     
                     if 'callback_query' in update:
                         cb = update['callback_query']
@@ -534,7 +535,7 @@ def main():
                         message_id = cb['message']['message_id']
                         data = cb['data']
                         
-                        logger.info(f"Callback: {data} from user {user_id}")
+                        logger.info(f"Callback: {data} from {user_id}")
                         
                         if data == "start":
                             handle_start(chat_id, user_id, username, first_name)
@@ -633,4 +634,4 @@ def main():
             time.sleep(5)
 
 if __name__ == "__main__":
-    main()
+    main() 
