@@ -50,6 +50,7 @@ EMOJI = {
     "reviews": "5938252440926163756",
     "support": "5208539876747662991",
     "back": "5960671702059848143",
+    "admin": "6030445631921721471",  # Новая кнопка админ-панели
     "zolo": "5451653043089070124",
     "impact": "5276079251089547977",
     "king": "6172520285330214110",
@@ -79,7 +80,11 @@ EMOJI = {
     "key": "6048733173171359488",
     "date": "5208474816583063829",
     "link": "5208480322731137426",
-    "success": "5938252440926163756"
+    "success": "5938252440926163756",
+    "stats": "6032693626394382504",
+    "ban": "5208480322731137426",
+    "unban": "5208657859499282838",
+    "broadcast": "5208539876747662991"
 }
 
 # --- ФУНКЦИЯ ДЛЯ PREMIUM ЭМОДЗИ В ТЕКСТЕ ---
@@ -130,7 +135,7 @@ waiting = {}
 user_selection = {}
 
 # --- REPLY КЛАВИАТУРА ГЛАВНОГО МЕНЮ С PREMIUM ЭМОДЗИ ---
-def get_main_keyboard():
+def get_main_keyboard(is_admin=False):
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -159,6 +164,16 @@ def get_main_keyboard():
         resize_keyboard=True,
         one_time_keyboard=False
     )
+    
+    # Если пользователь админ, добавляем кнопку админ-панели
+    if is_admin:
+        keyboard.keyboard.append([
+            KeyboardButton(
+                text="Адмін панель",
+                icon_custom_emoji_id=EMOJI["admin"]
+            )
+        ])
+    
     return keyboard
 
 def get_back_keyboard():
@@ -167,6 +182,43 @@ def get_back_keyboard():
             [
                 KeyboardButton(
                     text="Назад",
+                    icon_custom_emoji_id=EMOJI["back"]
+                )
+            ]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+    return keyboard
+
+def get_admin_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(
+                    text="📊 Статистика",
+                    icon_custom_emoji_id=EMOJI["stats"]
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="📢 Розсилка",
+                    icon_custom_emoji_id=EMOJI["broadcast"]
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="⛔ Забанити",
+                    icon_custom_emoji_id=EMOJI["ban"]
+                ),
+                KeyboardButton(
+                    text="✅ Розбанити",
+                    icon_custom_emoji_id=EMOJI["unban"]
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="◀️ Назад",
                     icon_custom_emoji_id=EMOJI["back"]
                 )
             ]
@@ -303,7 +355,7 @@ async def cmd_start(message: types.Message):
     if not check_subscription(user_id):
         text = (f"{em(EMOJI['lock'], '🔒')} <b>Доступ обмежено!</b>\n\n"
                 f"Для доступу до бота необхідно підписатися на канал:\n"
-                f"📢 <b>{REQUIRED_CHANNEL_NAME}</b>\n\n"
+                f"{em(EMOJI['catalog'], '📢')} <b>{REQUIRED_CHANNEL_NAME}</b>\n\n"
                 f"Після підписки натисніть кнопку «ПРОВЕРИТИ»")
         await message.answer(text, reply_markup=get_subscribe_keyboard())
         return
@@ -318,7 +370,8 @@ async def cmd_start(message: types.Message):
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
-    await message.answer(text, reply_markup=get_main_keyboard())
+    is_admin = (user_id == ADMIN_ID)
+    await message.answer(text, reply_markup=get_main_keyboard(is_admin))
 
 @dp.callback_query(F.data == "check_sub")
 async def check_sub_callback(callback: types.CallbackQuery):
@@ -336,7 +389,8 @@ async def check_sub_callback(callback: types.CallbackQuery):
                 f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
         
         await callback.message.delete()
-        await callback.message.answer(text, reply_markup=get_main_keyboard())
+        is_admin = (user_id == ADMIN_ID)
+        await callback.message.answer(text, reply_markup=get_main_keyboard(is_admin))
         await callback.answer("✅ Підписка підтверджена!")
     else:
         await callback.answer("❌ Ви ще не підписалися на канал!", show_alert=True)
@@ -402,14 +456,93 @@ async def handle_support(message: types.Message):
     text = f"{em(EMOJI['support'], '🎮')} <b>Технічна підтримка</b>\n\nЗв'яжіться з нами: @ZrogIikCheat"
     await message.answer(text, reply_markup=get_back_keyboard())
 
+@dp.message(F.text == "Адмін панель")
+async def handle_admin_panel(message: types.Message):
+    user_id = message.from_user.id
+    if user_id != ADMIN_ID:
+        await message.answer("⛔ У вас немає доступу до адмін-панелі")
+        return
+    
+    text = (f"{em(EMOJI['admin'], '👑')} <b>АДМІН ПАНЕЛЬ</b>\n\n"
+            f"Виберіть дію:")
+    await message.answer(text, reply_markup=get_admin_keyboard())
+
+@dp.message(F.text == "📊 Статистика")
+async def admin_stats(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    total = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+    banned = cursor.execute('SELECT COUNT(*) FROM users WHERE banned = 1').fetchone()[0]
+    active = cursor.execute('SELECT COUNT(*) FROM users WHERE expiry_date > ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),)).fetchone()[0]
+    
+    text = (f"{em(EMOJI['stats'], '📊')} <b>Статистика користувачів:</b>\n\n"
+            f"{em(EMOJI['catalog'], '📊')} <b>Всього:</b> {total}\n"
+            f"{em(EMOJI['success'], '✅')} <b>Активних:</b> {active}\n"
+            f"{em(EMOJI['cancel'], '⛔')} <b>Забанено:</b> {banned}")
+    
+    await message.answer(text, reply_markup=get_admin_keyboard())
+
+@dp.message(F.text == "📢 Розсилка")
+async def admin_broadcast(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    waiting[f"{message.from_user.id}_broadcast"] = "waiting"
+    await message.answer(f"{em(EMOJI['broadcast'], '📢')} <b>Надішліть повідомлення для розсилки</b>\n\n"
+                         f"Це може бути текст, фото, відео або документ", 
+                         reply_markup=get_back_keyboard())
+
+@dp.message(F.text == "⛔ Забанити")
+async def admin_ban_prompt(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    waiting[f"{message.from_user.id}_ban"] = "waiting"
+    await message.answer(f"{em(EMOJI['ban'], '⛔')} <b>Введіть ID користувача та причину</b>\n\n"
+                         f"Формат: <code>ID причина</code>\n"
+                         f"Приклад: <code>123456789 Спам</code>")
+
+@dp.message(F.text == "✅ Розбанити")
+async def admin_unban_prompt(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    waiting[f"{message.from_user.id}_unban"] = "waiting"
+    await message.answer(f"{em(EMOJI['unban'], '✅')} <b>Введіть ID користувача</b>\n\n"
+                         f"Формат: <code>ID</code>\n"
+                         f"Приклад: <code>123456789</code>")
+
 @dp.message(F.text == "Назад")
 async def handle_back(message: types.Message):
-    await cmd_start(message)
+    user_id = message.from_user.id
+    is_admin = (user_id == ADMIN_ID)
+    
+    # Очищаем ожидания
+    if waiting.get(f"{user_id}_broadcast"):
+        waiting[f"{user_id}_broadcast"] = None
+    if waiting.get(f"{user_id}_ban"):
+        waiting[f"{user_id}_ban"] = None
+    if waiting.get(f"{user_id}_unban"):
+        waiting[f"{user_id}_unban"] = None
+    
+    text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+    
+    await message.answer(text, reply_markup=get_main_keyboard(is_admin))
 
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    is_admin = (user_id == ADMIN_ID)
+    
+    text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+    
     await callback.message.delete()
-    await cmd_start(callback.message)
+    await callback.message.answer(text, reply_markup=get_main_keyboard(is_admin))
     await callback.answer()
 
 @dp.callback_query(F.data == "back_to_catalog")
@@ -433,6 +566,7 @@ async def back_to_period(callback: types.CallbackQuery):
     await callback.message.edit_text(desc, reply_markup=get_period_keyboard(cheat))
     await callback.answer()
 
+# --- ОБРАБОТЧИКИ ДЛЯ CHEAT ---
 @dp.callback_query(F.data.startswith("cheat_"))
 async def show_cheat(callback: types.CallbackQuery):
     cheat = callback.data.split("_")[1]
@@ -582,7 +716,7 @@ async def handle_receipt_photo(message: types.Message):
         )
         await message.answer(f"✅ Чек відправлено адміністратору! Очікуйте підтвердження.")
 
-# --- АДМИН-ОБРАБОТЧИКИ ---
+# --- АДМИН-ОБРАБОТЧИКИ ДЛЯ ЧЕКОВ ---
 @dp.callback_query(F.data.startswith("adm_ok_"))
 async def admin_approve(callback: types.CallbackQuery):
     target_id = int(callback.data.split("_")[2])
@@ -698,88 +832,56 @@ async def admin_file_or_key(message: types.Message):
         if waiting.get(f"{target_id}_waiting"):
             del waiting[f"{target_id}_waiting"]
 
-# --- АДМИН-КОМАНДЫ ---
-@dp.message(Command("ban"))
-async def ban_user(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    
-    args = message.text.split(maxsplit=2)
-    if len(args) < 2:
-        await message.answer("❌ /ban [id] [причина]")
-        return
-    
-    try:
-        target_id = int(args[1])
-        reason = args[2] if len(args) > 2 else "Нарушение правил"
-        
-        cursor.execute('UPDATE users SET banned = 1, ban_reason = ? WHERE user_id = ?', (reason, target_id))
-        conn.commit()
-        
-        try:
-            await bot.send_message(target_id, f"⛔️ <b>Вы заблокированы</b>\nПричина: {reason}")
-        except:
-            pass
-        
-        await message.answer(f"✅ Пользователь {target_id} забанен")
-    except:
-        await message.answer("❌ Неверный формат ID")
-
-@dp.message(Command("unban"))
-async def unban_user(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    
-    args = message.text.split()
-    if len(args) < 2:
-        await message.answer("❌ /unban [id]")
-        return
-    
-    try:
-        target_id = int(args[1])
-        cursor.execute('UPDATE users SET banned = 0, ban_reason = NULL WHERE user_id = ?', (target_id,))
-        conn.commit()
-        
-        try:
-            await bot.send_message(target_id, f"✅ <b>Вы разблокированы</b>")
-        except:
-            pass
-        
-        await message.answer(f"✅ Пользователь {target_id} разблокирован")
-    except:
-        await message.answer("❌ Неверный формат ID")
-
-@dp.message(Command("users"))
-async def users_stats(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    
-    total = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-    banned = cursor.execute('SELECT COUNT(*) FROM users WHERE banned = 1').fetchone()[0]
-    active = cursor.execute('SELECT COUNT(*) FROM users WHERE expiry_date > ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),)).fetchone()[0]
-    
-    await message.answer(
-        f"👥 <b>Статистика користувачів:</b>\n\n"
-        f"📊 Всього: {total}\n"
-        f"✅ Активних: {active}\n"
-        f"⛔ Забанено: {banned}"
-    )
-
-@dp.message(Command("broadcast"))
-async def broadcast_start(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    
-    waiting[f"{message.from_user.id}_broadcast"] = "waiting"
-    await message.answer(f"📢 <b>Надішліть повідомлення для розсилки</b>")
-
+# --- ОБРАБОТКА ТЕКСТОВЫХ АДМИН-КОМАНД ---
 @dp.message(F.text)
-async def handle_broadcast_text(message: types.Message):
+async def handle_admin_text_commands(message: types.Message):
     user_id = message.from_user.id
     if user_id != ADMIN_ID:
         return
     
-    if waiting.get(f"{user_id}_broadcast") == "waiting":
+    # Обработка бана
+    if waiting.get(f"{user_id}_ban") == "waiting":
+        waiting[f"{user_id}_ban"] = None
+        args = message.text.split(maxsplit=1)
+        if len(args) < 2:
+            await message.answer("❌ Неправильний формат! Використовуйте: ID причина")
+            return
+        
+        try:
+            target_id = int(args[0])
+            reason = args[1] if len(args) > 1 else "Нарушение правил"
+            
+            cursor.execute('UPDATE users SET banned = 1, ban_reason = ? WHERE user_id = ?', (reason, target_id))
+            conn.commit()
+            
+            try:
+                await bot.send_message(target_id, f"⛔️ <b>Вы заблокированы</b>\nПричина: {reason}")
+            except:
+                pass
+            
+            await message.answer(f"✅ Пользователь {target_id} забанен")
+        except ValueError:
+            await message.answer("❌ Неверный формат ID")
+    
+    # Обработка разбана
+    elif waiting.get(f"{user_id}_unban") == "waiting":
+        waiting[f"{user_id}_unban"] = None
+        try:
+            target_id = int(message.text)
+            cursor.execute('UPDATE users SET banned = 0, ban_reason = NULL WHERE user_id = ?', (target_id,))
+            conn.commit()
+            
+            try:
+                await bot.send_message(target_id, f"✅ <b>Вы разблокированы</b>")
+            except:
+                pass
+            
+            await message.answer(f"✅ Пользователь {target_id} разблокирован")
+        except ValueError:
+            await message.answer("❌ Неверный формат ID")
+    
+    # Обработка рассылки
+    elif waiting.get(f"{user_id}_broadcast") == "waiting":
         waiting[f"{user_id}_broadcast"] = None
         users = cursor.execute('SELECT user_id FROM users WHERE banned = 0').fetchall()
         
@@ -790,7 +892,10 @@ async def handle_broadcast_text(message: types.Message):
         sent = 0
         for u in users:
             try:
-                await bot.send_message(u['user_id'], message.text)
+                if message.text:
+                    await bot.send_message(u['user_id'], message.text)
+                elif message.photo:
+                    await bot.send_photo(u['user_id'], message.photo[-1].file_id, caption=message.caption)
                 sent += 1
             except:
                 pass
