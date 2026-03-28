@@ -9,8 +9,7 @@ from datetime import datetime, timedelta
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = "8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg"
 ADMIN_ID = 1471307057
-CARD = "4441111008011946"
-CARD_NEW = "5167803275649049"
+CARD = "5167803275649049"  # Новая карта
 CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
@@ -231,8 +230,7 @@ def get_period_keyboard(cheat):
 def get_payment_keyboard(cheat, days):
     return {
         "inline_keyboard": [
-            [{"text": "Укр Банк", "callback_data": f"bank_ukr_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
-            [{"text": "Нова карта", "callback_data": f"bank_new_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
+            [{"text": "Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
             [{"text": "Сбербанк", "callback_data": f"bank_sber_{cheat}_{days}", "icon_custom_emoji_id": "5247180323120225302"}],
             [{"text": "CryptoBot", "callback_data": f"crypto_{cheat}_{days}", "icon_custom_emoji_id": "5208954744818651087"}],
             [{"text": "Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
@@ -418,29 +416,15 @@ def handle_select_period(chat_id, message_id, cheat, days):
     
     edit_message_caption(chat_id, message_id, desc, get_payment_keyboard(cheat, days))
 
-def handle_bank_payment_ukr(chat_id, message_id, cheat, days):
+def handle_bank_payment(chat_id, message_id, cheat, days):
     waiting[f"{chat_id}_product"] = cheat
     waiting[f"{chat_id}_days"] = days
     
     price = PRICES[cheat][days]
     
-    text = (f"{em('5890848474563352982', '💳')} <b>Оплата банківською карткою (Укр Банк)</b>\n\n"
+    text = (f"{em('5890848474563352982', '💳')} <b>Оплата банківською карткою</b>\n\n"
             f"{em('5890848474563352982', '💰')} <b>Сума:</b> {price}\n"
             f"{em('5890848474563352982', '💳')} <b>Карта:</b> <code>{CARD}</code>\n"
-            f"{em('5891105528356018797', '❗')} <b>Коментар:</b> За цифрові товари\n\n"
-            f"{em('5769126056262898415', '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
-    
-    edit_message_caption(chat_id, message_id, text, get_receipt_keyboard())
-
-def handle_bank_payment_new(chat_id, message_id, cheat, days):
-    waiting[f"{chat_id}_product"] = cheat
-    waiting[f"{chat_id}_days"] = days
-    
-    price = PRICES[cheat][days]
-    
-    text = (f"{em('5890848474563352982', '💳')} <b>Оплата новою карткою</b>\n\n"
-            f"{em('5890848474563352982', '💰')} <b>Сума:</b> {price}\n"
-            f"{em('5890848474563352982', '💳')} <b>Карта:</b> <code>{CARD_NEW}</code>\n"
             f"{em('5891105528356018797', '❗')} <b>Коментар:</b> За цифрові товари\n\n"
             f"{em('5769126056262898415', '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
     
@@ -690,12 +674,9 @@ def main():
                         elif data.startswith("period_"):
                             parts = data.split("_")
                             handle_select_period(chat_id, message_id, parts[1], parts[2])
-                        elif data.startswith("bank_ukr_"):
+                        elif data.startswith("bank_"):
                             parts = data.split("_")
-                            handle_bank_payment_ukr(chat_id, message_id, parts[2], parts[3])
-                        elif data.startswith("bank_new_"):
-                            parts = data.split("_")
-                            handle_bank_payment_new(chat_id, message_id, parts[2], parts[3])
+                            handle_bank_payment(chat_id, message_id, parts[1], parts[2])
                         elif data.startswith("bank_sber_"):
                             parts = data.split("_")
                             handle_bank_payment_sber(chat_id, message_id, parts[2], parts[3])
