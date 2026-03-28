@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "7872950771:AAHD6f917dOdjDpJXj40ghroek2PWJfbDq8"
+BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
 ADMIN_ID = 1471307057
 CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
@@ -38,7 +38,7 @@ CRYPTO_API = "https://pay.crypt.bot/api"
 
 # ОДИН КАНАЛ для обязательной подписки
 REQUIRED_CHANNELS = [
-    {"id": -1002271436385, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
+    {"id": -1002544275396, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
 ]
 
 REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
