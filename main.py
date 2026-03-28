@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "7872950771:AAHD6f917dOdjDpJXj40ghroek2PWJfbDq8"
+BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
 ADMIN_ID = 1471307057
 CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
