@@ -7,8 +7,8 @@ import requests
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg"
-ADMIN_ID = 1471307057
+BOT_TOKEN = "7872950771:AAHD6f917dOdjDpJXj40ghroek2PWJfbDq8"
+ADMIN_ID = 1471307057 , 5390646779
 CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
