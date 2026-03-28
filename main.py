@@ -15,13 +15,30 @@ CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
+# --- ДИАГНОСТИКА ТОКЕНА ---
+print("🔍 Проверка токена...")
+try:
+    test_url = f"https://api.telegram.org/bot{BOT_TOKEN}/getMe"
+    response = urllib.request.urlopen(test_url, timeout=10)
+    data = json.loads(response.read().decode())
+    if data.get('ok'):
+        bot_username = data['result']['username']
+        print(f"✅ Токен работает! Бот: @{bot_username}")
+    else:
+        print(f"❌ Ошибка API: {data}")
+        exit(1)
+except Exception as e:
+    print(f"❌ Токен недействителен: {e}")
+    print("Проверьте токен в @BotFather. Команда: /mybots")
+    exit(1)
+
 # CryptoBot API
 CRYPTO_TOKEN = "466345:AADMm3mzlC6KGJmwt3r771bUPIx40CMEKhQ"
 CRYPTO_API = "https://pay.crypt.bot/api"
 
 # ОДИН КАНАЛ для обязательной подписки
 REQUIRED_CHANNELS = [
-    {"id": -1002271436385, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
+    {"id": -1002544275396, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
 ]
 
 REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
@@ -195,37 +212,37 @@ def check_all_subscriptions(user_id):
 def get_subscribe_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"]}],
-            [{"text": "ПРОВЕРИТИ", "callback_data": "check_sub"}]
+            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
+            [{"text": "ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
         ]
     }
 
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
-# --- КНОПКИ ---
+# --- КНОПКИ С ПРЕМИУМ ЭМОДЗИ ---
 def get_main_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Купити ключ", "callback_data": "buy_key"},
-             {"text": "Мій профіль", "callback_data": "profile"}],
-            [{"text": "Наші відгуки", "callback_data": "show_reviews"},
-             {"text": "Техпідтримка", "url": "https://t.me/ZrogIikCheat"}]
+            [{"text": "Купити ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
+             {"text": "Мій профіль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
+            [{"text": "Наші відгуки", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
+             {"text": "Техпідтримка", "url": "https://t.me/ZrogIikCheat", "icon_custom_emoji_id": "5208539876747662991"}]
         ]
     }
 
 def get_back_button(target):
-    return {"inline_keyboard": [[{"text": "Назад", "callback_data": target}]]}
+    return {"inline_keyboard": [[{"text": "Назад", "callback_data": target, "icon_custom_emoji_id": "5960671702059848143"}]]}
 
 def get_cheats_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Zolo", "callback_data": "cheat_zolo"}],
-            [{"text": "Impact VIP", "callback_data": "cheat_impact"}],
-            [{"text": "King Mod", "callback_data": "cheat_king"}],
-            [{"text": "Inferno", "callback_data": "cheat_inferno"}],
-            [{"text": "Zolo CIS", "callback_data": "cheat_zolo_cis"}],
-            [{"text": "Назад", "callback_data": "start"}]
+            [{"text": "Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5451653043089070124"}],
+            [{"text": "Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5276079251089547977"}],
+            [{"text": "King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "6172520285330214110"}],
+            [{"text": "Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5296273418516187626"}],
+            [{"text": "Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5451841459009379088"}],
+            [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
@@ -240,41 +257,41 @@ def get_period_keyboard(cheat):
     buttons = []
     for days in PRICES[cheat].keys():
         days_text = f"{days} дн." if days != "1" else "1 день"
-        buttons.append([{"text": days_text, "callback_data": f"period_{cheat}_{days}"}])
-    buttons.append([{"text": "Назад", "callback_data": "buy_key"}])
+        buttons.append([{"text": days_text, "callback_data": f"period_{cheat}_{days}", "icon_custom_emoji_id": "5393330385096575682"}])
+    buttons.append([{"text": "Назад", "callback_data": "buy_key", "icon_custom_emoji_id": "5960671702059848143"}])
     return {"inline_keyboard": buttons}
 
 def get_payment_keyboard(cheat, days):
     return {
         "inline_keyboard": [
-            [{"text": "Укр Банк", "callback_data": f"bank_{cheat}_{days}"}],
-            [{"text": "Сбербанк", "callback_data": f"bank_sber_{cheat}_{days}"}],
-            [{"text": "CryptoBot", "callback_data": f"crypto_{cheat}_{days}"}],
-            [{"text": "Назад", "callback_data": f"cheat_{cheat}"}]
+            [{"text": "Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
+            [{"text": "Сбербанк", "callback_data": f"bank_sber_{cheat}_{days}", "icon_custom_emoji_id": "5247180323120225302"}],
+            [{"text": "CryptoBot", "callback_data": f"crypto_{cheat}_{days}", "icon_custom_emoji_id": "5208954744818651087"}],
+            [{"text": "Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
 def get_receipt_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Я оплатив", "callback_data": "send_receipt"}],
-            [{"text": "Скасувати", "callback_data": "start"}]
+            [{"text": "Я оплатив", "callback_data": "send_receipt", "icon_custom_emoji_id": "5258205968025525531"}],
+            [{"text": "Скасувати", "callback_data": "start", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
 
 def get_reviews_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Канал з відгуками", "url": REVIEWS_CHANNEL_URL}],
-            [{"text": "Назад", "callback_data": "start"}]
+            [{"text": "Канал з відгуками", "url": REVIEWS_CHANNEL_URL, "icon_custom_emoji_id": "6028171274939797252"}],
+            [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
 def get_admin_decision_keyboard(user_id):
     return {
         "inline_keyboard": [
-            [{"text": "Одобрити", "callback_data": f"adm_ok_{user_id}"}],
-            [{"text": "Відхилити", "callback_data": f"adm_no_{user_id}"}]
+            [{"text": "Одобрити", "callback_data": f"adm_ok_{user_id}", "icon_custom_emoji_id": "5208657859499282838"}],
+            [{"text": "Відхилити", "callback_data": f"adm_no_{user_id}", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
 
@@ -316,7 +333,7 @@ def handle_start(chat_id, user_id, username, first_name, message_id=None):
     
     subscribed, _, _ = check_all_subscriptions(user_id)
     if not subscribed:
-        text = (f"🔒 <b>Доступ обмежено!</b>\n\n"
+        text = (f"{em('5208806229144524155', '🔒')} <b>Доступ обмежено!</b>\n\n"
                 f"Для доступу до бота необхідно підписатися на канал:\n"
                 f"📢 <b>{REQUIRED_CHANNELS[0]['name']}</b>\n\n"
                 f"Після підписки натисніть кнопку «ПРОВЕРИТИ»")
@@ -329,9 +346,9 @@ def handle_start(chat_id, user_id, username, first_name, message_id=None):
     ''', (user_id, username, first_name, user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     conn.commit()
     
-    text = (f"🔥 <b>ZROGLIK KEYS</b>\n\n"
-            f"👋 Ласкаво просимо до ZroglikShop!\n"
-            f"🎯 Тут ти можеш купити чити для PUBG Mobile")
+    text = (f"{em('5208806229144524155', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em('5208657859499282838', '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em('6073605466221451561', '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
     if message_id:
         edit_message_caption(chat_id, message_id, text, get_main_keyboard())
@@ -347,9 +364,9 @@ def handle_check_subscription(chat_id, user_id, callback_id, message_id):
         ''', (user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         conn.commit()
         
-        text = (f"🔥 <b>ZROGLIK KEYS</b>\n\n"
-                f"👋 Ласкаво просимо до ZroglikShop!\n"
-                f"🎯 Тут ти можеш купити чити для PUBG Mobile")
+        text = (f"{em('5208806229144524155', '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+                f"{em('5208657859499282838', '👋')} Ласкаво просимо до ZroglikShop!\n"
+                f"{em('6073605466221451561', '🎯')} Тут ти можеш купити чити для PUBG Mobile")
         edit_message_caption(chat_id, message_id, text, get_main_keyboard())
         answer_callback(callback_id, "✅ Підписка підтверджена!")
     else:
@@ -390,37 +407,37 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
     user_name = user['first_name'] if user and user['first_name'] else str(user_id)
     user_username = user['username'] if user and user['username'] else "Немає"
     
-    text = (f"👤 <b>ПРОФІЛЬ</b>\n\n"
-            f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
-            f"📛 <b>Ім'я:</b> {user_name}\n"
-            f"🔖 <b>Username:</b> @{user_username}\n"
-            f"📦 <b>Товар:</b> {product}\n"
-            f"⏳ <b>Залишилось:</b> {time_left}")
+    text = (f"{em('5904630315946611415', '👤')} <b>ПРОФІЛЬ</b>\n\n"
+            f"{em('6032693626394382504', '🆔')} <b>ID:</b> <code>{user_id}</code>\n"
+            f"{em('5879770735999717115', '📛')} <b>Ім'я:</b> {user_name}\n"
+            f"{em('5814247475141153332', '🔖')} <b>Username:</b> @{user_username}\n"
+            f"{em('6041730074376410123', '📦')} <b>Товар:</b> {product}\n"
+            f"{em('5891211339170326418', '⏳')} <b>Залишилось:</b> {time_left}")
     
     if last_key:
-        text += f"\n🔑 <b>Ваш ключ:</b> <code>{last_key}</code>"
+        text += f"\n{em('6048733173171359488', '🔑')} <b>Ваш ключ:</b> <code>{last_key}</code>"
         if expiry_display:
-            text += f"\n📅 <b>Діє до:</b> {expiry_display}"
+            text += f"\n{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_display}"
     
     edit_message_caption(chat_id, message_id, text, get_back_button("start"))
 
 def handle_reviews(chat_id, message_id):
-    text = f"⭐ <b>Наші відгуки</b>"
+    text = f"{em('5938252440926163756', '⭐')} <b>Наші відгуки</b>"
     edit_message_caption(chat_id, message_id, text, get_reviews_keyboard())
 
 def handle_buy_key(chat_id, message_id):
-    text = f"🎯 <b>PUBG Mobile</b>\nВиберіть чит:"
+    text = f"{em('6073605466221451561', '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
     edit_message_caption(chat_id, message_id, text, get_cheats_keyboard())
 
 def show_cheat(chat_id, message_id, cheat):
     desc = f"{CHEAT_NAMES[cheat]}\n\n"
-    desc += f"💰 <b>Ціни:</b>\n"
+    desc += f"{em('5208806229144524155', '💰')} <b>Ціни:</b>\n"
     
     for days, price in PRICES[cheat].items():
         days_text = f"{days} дн." if days != "1" else "1 день"
-        desc += f"├ {days_text}: 💰 {price}\n"
+        desc += f"├ {days_text}: {em('5890848474563352982', '💰')} {price}\n"
     
-    desc += f"\n💳 <b>Виберіть період:</b>"
+    desc += f"\n{em('5393330385096575682', '💳')} <b>Виберіть період:</b>"
     
     edit_message_caption(chat_id, message_id, desc, get_period_keyboard(cheat))
 
@@ -431,9 +448,9 @@ def handle_select_period(chat_id, message_id, cheat, days):
     price = PRICES[cheat][days]
     
     desc = f"{CHEAT_NAMES[cheat]}\n\n"
-    desc += f"📅 {days} дн.\n"
-    desc += f"💰 {price}\n\n"
-    desc += f"💳 <b>Виберіть спосіб оплати:</b>"
+    desc += f"{em('5413879192267805083', '📅')} {days} дн.\n"
+    desc += f"{em('5208954744818651087', '💰')} {price}\n\n"
+    desc += f"{em('5393576224729633040', '💳')} <b>Виберіть спосіб оплати:</b>"
     
     edit_message_caption(chat_id, message_id, desc, get_payment_keyboard(cheat, days))
 
@@ -443,11 +460,11 @@ def handle_bank_payment(chat_id, message_id, cheat, days):
     
     price = PRICES[cheat][days]
     
-    text = (f"💳 <b>Оплата банківською карткою</b>\n\n"
-            f"💰 <b>Сума:</b> {price}\n"
-            f"💳 <b>Карта:</b> <code>{CARD}</code>\n"
-            f"❗ <b>Коментар:</b> За цифрові товари\n\n"
-            f"📸 Після оплати натисніть кнопку нижче і надішліть скріншот")
+    text = (f"{em('5890848474563352982', '💳')} <b>Оплата банківською карткою</b>\n\n"
+            f"{em('5890848474563352982', '💰')} <b>Сума:</b> {price}\n"
+            f"{em('5890848474563352982', '💳')} <b>Карта:</b> <code>{CARD}</code>\n"
+            f"{em('5891105528356018797', '❗')} <b>Коментар:</b> За цифрові товари\n\n"
+            f"{em('5769126056262898415', '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
     
     edit_message_caption(chat_id, message_id, text, get_receipt_keyboard())
 
@@ -457,17 +474,16 @@ def handle_bank_payment_sber(chat_id, message_id, cheat, days):
     
     price = PRICES[cheat][days]
     
-    text = (f"🏦 <b>Оплата Сбербанк</b>\n\n"
-            f"💰 <b>Сума:</b> {price}\n"
-            f"💳 <b>Карта:</b> <code>{CARD_SBER}</code>\n"
-            f"👤 <b>Отримувач:</b> {CARD_SBER_NAME}\n"
-            f"❗ <b>Коментар:</b> За цифрові товари\n\n"
-            f"📸 Після оплати натисніть кнопку нижче і надішліть скріншот")
+    text = (f"{em('5247180323120225302', '🏦')} <b>Оплата Сбербанк</b>\n\n"
+            f"{em('5890848474563352982', '💰')} <b>Сума:</b> {price}\n"
+            f"{em('5890848474563352982', '💳')} <b>Карта:</b> <code>{CARD_SBER}</code>\n"
+            f"{em('5879770735999717115', '👤')} <b>Отримувач:</b> {CARD_SBER_NAME}\n"
+            f"{em('5891105528356018797', '❗')} <b>Коментар:</b> За цифрові товари\n\n"
+            f"{em('5769126056262898415', '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
     
     edit_message_caption(chat_id, message_id, text, get_receipt_keyboard())
 
 def handle_crypto_payment(chat_id, message_id, cheat, days, user_id):
-    # Исправлено: убрано условие if cheat == "so2"
     price_str = PRICES[cheat][days].replace(" грн", "")
     amount = round(int(price_str) / 43, 2)
     
@@ -482,15 +498,15 @@ def handle_crypto_payment(chat_id, message_id, cheat, days, user_id):
     ''', (str(invoice["invoice_id"]), user_id, amount, days, cheat, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     conn.commit()
     
-    text = (f"💎 <b>Оплата через CryptoBot</b>\n\n"
-            f"💰 <b>Сума:</b> {amount}$\n"
-            f"📅 <b>Тариф:</b> {days} дней")
+    text = (f"{em('5208954744818651087', '💎')} <b>Оплата через CryptoBot</b>\n\n"
+            f"{em('5890848474563352982', '💰')} <b>Сума:</b> {amount}$\n"
+            f"{em('5413879192267805083', '📅')} <b>Тариф:</b> {days} дней")
     
     kb = {
         "inline_keyboard": [
-            [{"text": "💎 Оплатить", "url": invoice["pay_url"]}],
-            [{"text": "Проверить оплату", "callback_data": f"check_crypto_{invoice['invoice_id']}"}],
-            [{"text": "Отмена", "callback_data": "start"}]
+            [{"text": "💎 Оплатить", "url": invoice["pay_url"], "icon_custom_emoji_id": "5208954744818651087"}],
+            [{"text": "Проверить оплату", "callback_data": f"check_crypto_{invoice['invoice_id']}", "icon_custom_emoji_id": "6039486778597970865"}],
+            [{"text": "Отмена", "callback_data": "start", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
     edit_message_caption(chat_id, message_id, text, kb)
@@ -507,15 +523,15 @@ def handle_check_crypto(chat_id, message_id, payment_id, user_id):
             cursor.execute('UPDATE crypto_payments SET status = "paid" WHERE payment_id = ?', (str(payment_id),))
             conn.commit()
             edit_message_caption(chat_id, message_id, 
-                f"✅ <b>Оплата подтверждена!</b>\n\n📅 Подписка до {expiry}",
+                f"{em('5938252440926163756', '✅')} <b>Оплата подтверждена!</b>\n\n{em('5413879192267805083', '📅')} Подписка до {expiry}",
                 get_back_button("start"))
-            send_message(ADMIN_ID, f"💰 <b>Новый крипто-платёж</b>\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
+            send_message(ADMIN_ID, f"{em('6039486778597970865', '💰')} <b>Новый крипто-платёж</b>\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
     else:
         answer_callback(payment_id, "⏳ Платёж ещё не подтверждён", True)
 
 def handle_send_receipt(chat_id, message_id, user_id):
     waiting[f"{user_id}_waiting"] = "receipt"
-    send_message(chat_id, f"📸 <b>Надішліть скріншот чека</b> (одним фото)")
+    send_message(chat_id, f"{em('5769126056262898415', '📸')} <b>Надішліть скріншот чека</b> (одним фото)")
 
 # --- АДМИН-КОМАНДЫ ---
 def handle_ban(chat_id, text):
@@ -637,11 +653,11 @@ def handle_admin_key(chat_id, user_id, key):
     
     conn.commit()
     
-    user_text = (f"✅ <b>Замовлення активовано!</b>\n\n"
-                 f"📅 <b>Діє до:</b> {expiry_display}\n"
-                 f"🔑 <b>Ключ:</b> <code>{key}</code>\n\n"
-                 f"💜 Дякуємо за покупку в ZroglikShop!\n\n"
-                 f"📝 <b>Інструкція:</b>\n"
+    user_text = (f"{em('5938252440926163756', '✅')} <b>Замовлення активовано!</b>\n\n"
+                 f"{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_display}\n"
+                 f"{em('6048733173171359488', '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
+                 f"{em('5413879192267805083', '💜')} Дякуємо за покупку в ZroglikShop!\n\n"
+                 f"{em('6039348811363520645', '📝')} <b>Інструкція:</b>\n"
                  f"1. Скачайте чит за посиланням вище\n"
                  f"2. Вставте ключ {key}\n"
                  f"3. Насолоджуйтесь грою! 🎮")
@@ -665,7 +681,6 @@ def handle_admin_key(chat_id, user_id, key):
     except Exception as e:
         send_message(chat_id, f"❌ Помилка: {e}")
     
-    # Очищаем временные данные
     for k in list(waiting.keys()):
         if f"admin_{target_id}" in k or k == "admin_target" or f"admin_waiting_for_{target_id}" in k:
             del waiting[k]
