@@ -133,12 +133,6 @@ def send_document(chat_id, document, caption=None):
         data["caption"] = caption
     return api("sendDocument", data)
 
-def edit_message_caption(chat_id, message_id, caption, reply_markup=None):
-    data = {"chat_id": chat_id, "message_id": message_id, "caption": caption, "parse_mode": "HTML"}
-    if reply_markup:
-        data["reply_markup"] = reply_markup
-    return api("editMessageCaption", data)
-
 def edit_message_text(chat_id, message_id, text, reply_markup=None):
     data = {"chat_id": chat_id, "message_id": message_id, "text": text, "parse_mode": "HTML"}
     if reply_markup:
@@ -159,7 +153,7 @@ def answer_callback(callback_id, text=None, show_alert=False):
         data["show_alert"] = True
     return api("answerCallbackQuery", data)
 
-# --- ФУНКЦИЯ ДЛЯ ЭМОДЗИ ---
+# --- ФУНКЦИЯ ДЛЯ ЭМОДЗИ В ТЕКСТЕ ---
 def em(emoji_id, char):
     return f'<tg-emoji emoji-id="{emoji_id}">{char}</tg-emoji>'
 
@@ -169,62 +163,50 @@ def get_main_reply_keyboard():
         "keyboard": [
             [
                 {
-                    "text": " ",
+                    "text": "📦 Каталог",
                     "text_entities": [
                         {
                             "type": "custom_emoji",
-                            "text": "📦",
+                            "offset": 0,
+                            "length": 1,
                             "custom_emoji_id": "5156877291397055163"
-                        },
-                        {
-                            "type": "text",
-                            "text": " Каталог"
                         }
                     ]
                 }
             ],
             [
                 {
-                    "text": " ",
+                    "text": "👤 Мій кабінет",
                     "text_entities": [
                         {
                             "type": "custom_emoji",
-                            "text": "👤",
+                            "offset": 0,
+                            "length": 1,
                             "custom_emoji_id": "5904630315946611415"
-                        },
-                        {
-                            "type": "text",
-                            "text": " Мій кабінет"
                         }
                     ]
                 }
             ],
             [
                 {
-                    "text": " ",
+                    "text": "⭐ Відгуки",
                     "text_entities": [
                         {
                             "type": "custom_emoji",
-                            "text": "⭐",
+                            "offset": 0,
+                            "length": 1,
                             "custom_emoji_id": "5938252440926163756"
-                        },
-                        {
-                            "type": "text",
-                            "text": " Відгуки"
                         }
                     ]
                 },
                 {
-                    "text": " ",
+                    "text": "🎮 Техпідтримка",
                     "text_entities": [
                         {
                             "type": "custom_emoji",
-                            "text": "🎮",
+                            "offset": 0,
+                            "length": 1,
                             "custom_emoji_id": "5208539876747662991"
-                        },
-                        {
-                            "type": "text",
-                            "text": " Техпідтримка"
                         }
                     ]
                 }
@@ -239,16 +221,13 @@ def get_back_reply_keyboard():
         "keyboard": [
             [
                 {
-                    "text": " ",
+                    "text": "◀️ Назад",
                     "text_entities": [
                         {
                             "type": "custom_emoji",
-                            "text": "◀️",
+                            "offset": 0,
+                            "length": 1,
                             "custom_emoji_id": "5960671702059848143"
-                        },
-                        {
-                            "type": "text",
-                            "text": " Назад"
                         }
                     ]
                 }
@@ -886,15 +865,15 @@ def main():
                         try:
                             if text == "/start":
                                 handle_start(chat_id, user_id, username, first_name)
-                            elif text == "Каталог":
+                            elif text == "Каталог" or text == "📦 Каталог":
                                 handle_catalog(chat_id, None)
-                            elif text == "Мій кабінет":
+                            elif text == "Мій кабінет" or text == "👤 Мій кабінет":
                                 handle_profile(chat_id, user_id, username, first_name)
-                            elif text == "Відгуки":
+                            elif text == "Відгуки" or text == "⭐ Відгуки":
                                 handle_reviews(chat_id, None)
-                            elif text == "Техпідтримка":
+                            elif text == "Техпідтримка" or text == "🎮 Техпідтримка":
                                 handle_support(chat_id)
-                            elif text == "◀️ Назад":
+                            elif text == "Назад" or text == "◀️ Назад":
                                 handle_start(chat_id, user_id, username, first_name)
                             elif text.startswith("/ban") and user_id == ADMIN_ID:
                                 handle_ban(chat_id, text)
@@ -962,3 +941,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+                                )
+              
