@@ -27,14 +27,14 @@ print("🔄 Сброс вебхука и очереди...")
 try:
     urllib.request.urlopen(f"{API_URL}/deleteWebhook?drop_pending_updates=true", timeout=10)
     print("✅ Webhook удален")
-except Exception as e:
-    print(f"Ошибка удаления webhook: {e}")
+except:
+    pass
 
 try:
     urllib.request.urlopen(f"{API_URL}/getUpdates?offset=-1", timeout=10)
     print("✅ Очередь очищена")
-except Exception as e:
-    print(f"Ошибка очистки: {e}")
+except:
+    pass
 
 time.sleep(2)
 
@@ -169,11 +169,11 @@ def get_back_button(target):
 def get_cheats_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5451653043089070124"}],
-            [{"text": "Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5276079251089547977"}],
-            [{"text": "King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "6172520285330214110"}],
-            [{"text": "Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5296273418516187626"}],
-            [{"text": "Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5451841459009379088"}],
+            [{"text": f"{em('5208876898536414392', '🔥')} Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5208876898536414392"}],
+            [{"text": f"{em('5208876898536414392', '⚡')} Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5208876898536414392"}],
+            [{"text": f"{em('5208876898536414392', '👑')} King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "5208876898536414392"}],
+            [{"text": f"{em('5208876898536414392', '💥')} Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5208876898536414392"}],
+            [{"text": f"{em('5208876898536414392', '🎮')} Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5208876898536414392"}],
             [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
@@ -196,7 +196,8 @@ def get_period_keyboard(cheat):
 def get_payment_keyboard(cheat, days):
     return {
         "inline_keyboard": [
-            [{"text": "Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
+            [{"text": f"{em('5413879192267805083', '🇺🇦')} Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5413879192267805083"}],
+            [{"text": f"{em('5208954744818651087', '💎')} CryptoBot", "callback_data": f"crypto_{cheat}_{days}", "icon_custom_emoji_id": "5208954744818651087"}],
             [{"text": "Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
@@ -239,11 +240,11 @@ PRICES = {
 }
 
 CHEAT_NAMES = {
-    "zolo": "🔥 Zolo Cheat",
-    "impact": "⚡ Impact VIP",
-    "king": "👑 King Mod",
-    "inferno": "💥 Inferno Cheat",
-    "zolo_cis": "🎮 Zolo CIS Edition"
+    "zolo": "Zolo Cheat",
+    "impact": "Impact VIP",
+    "king": "King Mod",
+    "inferno": "Inferno Cheat",
+    "zolo_cis": "Zolo CIS Edition"
 }
 
 CHEAT_PHOTOS = {
@@ -356,7 +357,7 @@ def handle_buy_key(chat_id, message_id):
     edit_message_caption(chat_id, message_id, text, get_cheats_keyboard())
 
 def show_cheat(chat_id, message_id, cheat):
-    desc = f"{CHEAT_NAMES[cheat]}\n\n"
+    desc = f"{em('5208876898536414392', '🔥')} {CHEAT_NAMES[cheat]}\n\n"
     desc += f"{em('5208806229144524155', '💰')} <b>Ціни:</b>\n"
     
     for days, price in PRICES[cheat].items():
@@ -373,7 +374,7 @@ def handle_select_period(chat_id, message_id, cheat, days):
     
     price = PRICES[cheat][days]
     
-    desc = f"{CHEAT_NAMES[cheat]}\n\n📅 {days} дн.\n"
+    desc = f"{em('5208876898536414392', '🔥')} {CHEAT_NAMES[cheat]}\n\n📅 {days} дн.\n"
     desc += f"💰 {price}\n\n"
     desc += f"{em('5393576224729633040', '💳')} <b>Виберіть спосіб оплати:</b>"
     
@@ -396,6 +397,10 @@ def handle_bank_payment(chat_id, message_id, cheat, days):
 def handle_send_receipt(chat_id, message_id, user_id):
     waiting[f"{user_id}_waiting"] = "receipt"
     send_message(chat_id, f"{em('5769126056262898415', '📸')} <b>Надішліть скріншот чека</b> (одним фото)")
+
+def handle_crypto_payment(chat_id, message_id, cheat, days, user_id):
+    # Пока нет криптобота, просто заглушка
+    edit_message_caption(chat_id, message_id, "❌ CryptoBot временно недоступен", get_back_button("start"))
 
 # --- АДМИН-КОМАНДЫ ---
 def handle_ban(chat_id, text):
@@ -455,9 +460,9 @@ def handle_admin_decision(chat_id, data, user_id):
         waiting[f"admin_{target_id}_product"] = product
         waiting[f"admin_{target_id}_days"] = days
         waiting[f"admin_target"] = target_id
+        waiting[f"admin_waiting_for_{target_id}"] = "file"
         
         send_message(chat_id, f"📎 <b>Надішліть файл з читом</b> (або текст з інструкцією)")
-        waiting[f"admin_{target_id}_waiting"] = "file"
     else:
         target_id = int(parts[2])
         send_message(target_id, f"❌ Ваша оплата була відхилена адміністратором.")
@@ -466,6 +471,7 @@ def handle_admin_decision(chat_id, data, user_id):
 def handle_admin_file(chat_id, user_id, msg):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
+        logger.info(f"No admin_target found for user {user_id}")
         return
     
     file_id = None
@@ -473,19 +479,23 @@ def handle_admin_file(chat_id, user_id, msg):
     
     if 'document' in msg:
         file_id = msg['document']['file_id']
+        logger.info(f"Got document file_id: {file_id}")
     elif 'photo' in msg:
         file_id = msg['photo'][-1]['file_id']
+        logger.info(f"Got photo file_id: {file_id}")
     else:
         file_text = msg.get('text', '')
+        logger.info(f"Got text: {file_text}")
     
     waiting[f"admin_{target_id}_file"] = file_id
     waiting[f"admin_{target_id}_file_text"] = file_text
-    waiting[f"admin_{target_id}_waiting"] = "key"
+    waiting[f"admin_waiting_for_{target_id}"] = "key"
     send_message(chat_id, f"🔑 <b>Введіть ключ активації</b>")
 
 def handle_admin_key(chat_id, user_id, key):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
+        logger.info(f"No admin_target found for key input")
         return
     
     product = waiting.get(f"admin_{target_id}_product", "Unknown")
@@ -510,58 +520,23 @@ def handle_admin_key(chat_id, user_id, key):
     try:
         if file_id:
             send_document(target_id, file_id, text)
+            logger.info(f"Sent document to {target_id}")
         elif file_text:
             send_message(target_id, text + f"\n\n📝 {file_text}")
+            logger.info(f"Sent text to {target_id}")
         else:
             send_message(target_id, text)
+            logger.info(f"Sent message to {target_id}")
         
         send_message(chat_id, f"✅ Готово! Товар видано користувачу.")
     except Exception as e:
+        logger.error(f"Error sending to user: {e}")
         send_message(chat_id, f"❌ Помилка при відправці: {e}")
     
     # Очищаем
     for k in list(waiting.keys()):
-        if f"admin_{target_id}" in k or k == "admin_target":
+        if f"admin_{target_id}" in k or k == "admin_target" or f"admin_waiting_for_{target_id}" in k:
             del waiting[k]
-
-# --- ОБРАБОТКА АДМИН-РЕШЕНИЙ ---
-def handle_admin_decision(chat_id, data, user_id):
-    parts = data.split("_")
-    if parts[1] == "ok":
-        target_id = int(parts[2])
-        product = waiting.get(f"{target_id}_product", "Unknown")
-        days = waiting.get(f"{target_id}_days", "0")
-        
-        waiting[f"admin_{target_id}_product"] = product
-        waiting[f"admin_{target_id}_days"] = days
-        waiting[f"admin_target"] = target_id
-        
-        send_message(chat_id, f"📎 <b>Надішліть файл з читом</b> (або текст з інструкцією)")
-        waiting[f"admin_{target_id}_waiting"] = "file"
-    else:
-        target_id = int(parts[2])
-        send_message(target_id, f"❌ Ваша оплата була відхилена адміністратором.")
-        send_message(chat_id, f"❌ Відхилено")
-
-def handle_admin_file(chat_id, user_id, msg):
-    target_id = waiting.get(f"admin_target", 0)
-    if not target_id:
-        return
-    
-    file_id = None
-    file_text = None
-    
-    if 'document' in msg:
-        file_id = msg['document']['file_id']
-    elif 'photo' in msg:
-        file_id = msg['photo'][-1]['file_id']
-    else:
-        file_text = msg.get('text', '')
-    
-    waiting[f"admin_{target_id}_file"] = file_id
-    waiting[f"admin_{target_id}_file_text"] = file_text
-    waiting[f"admin_{target_id}_waiting"] = "key"
-    send_message(chat_id, f"🔑 <b>Введіть ключ активації</b>")
 
 # --- ГЛАВНЫЙ ЦИКЛ ---
 def main():
@@ -617,6 +592,9 @@ def main():
                         elif data.startswith("bank_"):
                             parts = data.split("_")
                             handle_bank_payment(chat_id, message_id, parts[1], parts[2])
+                        elif data.startswith("crypto_"):
+                            parts = data.split("_")
+                            handle_crypto_payment(chat_id, message_id, parts[1], parts[2], user_id)
                         elif data == "send_receipt":
                             handle_send_receipt(chat_id, message_id, user_id)
                         elif data.startswith("adm_ok_") or data.startswith("adm_no_"):
@@ -675,13 +653,18 @@ def main():
                                 get_admin_decision_keyboard(user_id)
                             )
                             send_message(chat_id, f"✅ Чек відправлено адміністратору!")
-                        elif waiting.get(f"{user_id}_waiting") == "file" and user_id == ADMIN_ID:
+                        elif waiting.get(f"admin_waiting_for_{user_id}") == "file" and user_id == ADMIN_ID:
                             handle_admin_file(chat_id, user_id, msg)
-                        elif waiting.get(f"{user_id}_waiting") == "key" and user_id == ADMIN_ID:
+                        elif waiting.get(f"admin_waiting_for_{user_id}") == "key" and user_id == ADMIN_ID:
                             handle_admin_key(chat_id, user_id, text)
                         elif text == "/cancel":
                             if waiting.get(f"{user_id}_waiting"):
                                 waiting[f"{user_id}_waiting"] = None
+                                send_message(chat_id, "✅ Операцію скасовано")
+                            if waiting.get(f"admin_waiting_for_{user_id}"):
+                                for k in list(waiting.keys()):
+                                    if f"admin_{user_id}" in k or f"admin_waiting_for_{user_id}" in k:
+                                        del waiting[k]
                                 send_message(chat_id, "✅ Операцію скасовано")
             
             time.sleep(1)
