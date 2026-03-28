@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
+BOT_TOKEN = "7872950771:AAHD6f917dOdjDpJXj40ghroek2PWJfbDq8"
 ADMIN_ID = 1471307057
 CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
@@ -38,7 +38,7 @@ CRYPTO_API = "https://pay.crypt.bot/api"
 
 # ОДИН КАНАЛ для обязательной подписки
 REQUIRED_CHANNELS = [
-    {"id": -1002544275396, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
+    {"id": -1002271436385, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
 ]
 
 REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
@@ -580,7 +580,7 @@ def handle_broadcast(chat_id, user_id):
     waiting[f"{user_id}_broadcast"] = "waiting"
     send_message(chat_id, f"📢 <b>Надішліть повідомлення для розсилки</b>")
 
-# --- ОБРАБОТКА АДМИН-РЕШЕНИЙ ---
+# --- ОБРАБОТКА АДМИН-РЕШЕНИЙ (ИСПРАВЛЕНА) ---
 def handle_admin_decision(chat_id, data, user_id):
     parts = data.split("_")
     if parts[1] == "ok":
@@ -588,20 +588,36 @@ def handle_admin_decision(chat_id, data, user_id):
         product = waiting.get(f"{target_id}_product", "Unknown")
         days = waiting.get(f"{target_id}_days", "0")
         
-        waiting[f"admin_{target_id}_product"] = product
-        waiting[f"admin_{target_id}_days"] = days
-        waiting[f"admin_target"] = target_id
-        waiting[f"admin_waiting_for_{target_id}"] = "file"
+        # Сохраняем данные для этого админа
+        waiting[f"admin_{user_id}_target"] = target_id
+        waiting[f"admin_{user_id}_product"] = product
+        waiting[f"admin_{user_id}_days"] = days
+        waiting[f"admin_{user_id}_state"] = "waiting_file"
         
         send_message(chat_id, f"📎 <b>Надішліть файл з читом</b> (або текст з інструкцією)")
     else:
         target_id = int(parts[2])
-        send_message(target_id, f"❌ Ваша оплата була відхилена адміністратором.")
+        try:
+            send_message(target_id, f"❌ Ваша оплата була відхилена адміністратором.")
+        except:
+            pass
         send_message(chat_id, f"❌ Відхилено")
+        # Очищаем waiting данные пользователя
+        if waiting.get(f"{target_id}_product"):
+            del waiting[f"{target_id}_product"]
+        if waiting.get(f"{target_id}_days"):
+            del waiting[f"{target_id}_days"]
 
 def handle_admin_file(chat_id, user_id, msg):
-    target_id = waiting.get(f"admin_target", 0)
+    # Проверяем, что этот админ ожидает файл
+    state = waiting.get(f"admin_{user_id}_state")
+    if state != "waiting_file":
+        return
+    
+    target_id = waiting.get(f"admin_{user_id}_target")
     if not target_id:
+        send_message(chat_id, "❌ Ошибка: не найден пользователь")
+        waiting[f"admin_{user_id}_state"] = None
         return
     
     file_id = None
@@ -614,20 +630,29 @@ def handle_admin_file(chat_id, user_id, msg):
     else:
         file_text = msg.get('text', '')
     
-    waiting[f"admin_{target_id}_file"] = file_id
-    waiting[f"admin_{target_id}_file_text"] = file_text
-    waiting[f"admin_waiting_for_{target_id}"] = "key"
+    # Сохраняем файл и переходим к ожиданию ключа
+    waiting[f"admin_{user_id}_file"] = file_id
+    waiting[f"admin_{user_id}_file_text"] = file_text
+    waiting[f"admin_{user_id}_state"] = "waiting_key"
+    
     send_message(chat_id, f"🔑 <b>Введіть ключ активації</b>")
 
 def handle_admin_key(chat_id, user_id, key):
-    target_id = waiting.get(f"admin_target", 0)
-    if not target_id:
+    # Проверяем, что этот админ ожидает ключ
+    state = waiting.get(f"admin_{user_id}_state")
+    if state != "waiting_key":
         return
     
-    product = waiting.get(f"admin_{target_id}_product", "Unknown")
-    days = int(waiting.get(f"admin_{target_id}_days", "0"))
-    file_id = waiting.get(f"admin_{target_id}_file")
-    file_text = waiting.get(f"admin_{target_id}_file_text")
+    target_id = waiting.get(f"admin_{user_id}_target")
+    if not target_id:
+        send_message(chat_id, "❌ Ошибка: не найден пользователь")
+        waiting[f"admin_{user_id}_state"] = None
+        return
+    
+    product = waiting.get(f"admin_{user_id}_product", "Unknown")
+    days = int(waiting.get(f"admin_{user_id}_days", "0"))
+    file_id = waiting.get(f"admin_{user_id}_file")
+    file_text = waiting.get(f"admin_{user_id}_file_text")
     
     expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
     product_name = CHEAT_NAMES.get(product, "Zroglik")
@@ -681,9 +706,18 @@ def handle_admin_key(chat_id, user_id, key):
     except Exception as e:
         send_message(chat_id, f"❌ Помилка: {e}")
     
+    # Очищаем все временные данные для этого админа
     for k in list(waiting.keys()):
-        if f"admin_{target_id}" in k or k == "admin_target" or f"admin_waiting_for_{target_id}" in k:
+        if k.startswith(f"admin_{user_id}_"):
             del waiting[k]
+    
+    # Очищаем данные пользователя
+    if waiting.get(f"{target_id}_product"):
+        del waiting[f"{target_id}_product"]
+    if waiting.get(f"{target_id}_days"):
+        del waiting[f"{target_id}_days"]
+    if waiting.get(f"{target_id}_waiting"):
+        del waiting[f"{target_id}_waiting"]
 
 # --- ГЛАВНЫЙ ЦИКЛ ---
 def main():
@@ -808,17 +842,17 @@ def main():
                                     get_admin_decision_keyboard(user_id)
                                 )
                                 send_message(chat_id, f"✅ Чек відправлено адміністратору!")
-                            elif waiting.get(f"admin_waiting_for_{user_id}") == "file" and user_id == ADMIN_ID:
+                            elif waiting.get(f"admin_{user_id}_state") == "waiting_file" and user_id == ADMIN_ID:
                                 handle_admin_file(chat_id, user_id, msg)
-                            elif waiting.get(f"admin_waiting_for_{user_id}") == "key" and user_id == ADMIN_ID:
+                            elif waiting.get(f"admin_{user_id}_state") == "waiting_key" and user_id == ADMIN_ID:
                                 handle_admin_key(chat_id, user_id, text)
                             elif text == "/cancel":
                                 if waiting.get(f"{user_id}_waiting"):
                                     waiting[f"{user_id}_waiting"] = None
                                     send_message(chat_id, "✅ Операцію скасовано")
-                                if waiting.get(f"admin_waiting_for_{user_id}"):
+                                if waiting.get(f"admin_{user_id}_state"):
                                     for k in list(waiting.keys()):
-                                        if f"admin_{user_id}" in k or f"admin_waiting_for_{user_id}" in k:
+                                        if k.startswith(f"admin_{user_id}_"):
                                             del waiting[k]
                                     send_message(chat_id, "✅ Операцію скасовано")
                         except Exception as e:
@@ -834,3 +868,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
