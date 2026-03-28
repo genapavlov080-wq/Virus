@@ -153,17 +153,76 @@ def answer_callback(callback_id, text=None, show_alert=False):
         data["show_alert"] = True
     return api("answerCallbackQuery", data)
 
-# --- ФУНКЦИЯ ДЛЯ ЭМОДЗИ ---
+# --- ФУНКЦИЯ ДЛЯ ЭМОДЗИ В ТЕКСТЕ ---
 def em(emoji_id, char):
     return f'<tg-emoji emoji-id="{emoji_id}">{char}</tg-emoji>'
 
-# --- REPLY КЛАВИАТУРА ГЛАВНОГО МЕНЮ ---
+# --- REPLY КЛАВИАТУРА С TELEGRAM PREMIUM ЭМОДЗИ ---
 def get_main_reply_keyboard():
     return {
         "keyboard": [
-            [{"text": f"{em('5156877291397055163', '📦')} Каталог"}],
-            [{"text": f"{em('5904630315946611415', '👤')} Мій кабінет"}],
-            [{"text": f"{em('5938252440926163756', '⭐')} Відгуки"}, {"text": f"{em('5208539876747662991', '🎮')} Техпідтримка"}]
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "📦",
+                            "custom_emoji_id": "5156877291397055163"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Каталог"
+                        }
+                    ]
+                }
+            ],
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "👤",
+                            "custom_emoji_id": "5904630315946611415"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Мій кабінет"
+                        }
+                    ]
+                }
+            ],
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "⭐",
+                            "custom_emoji_id": "5938252440926163756"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Відгуки"
+                        }
+                    ]
+                },
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "🎮",
+                            "custom_emoji_id": "5208539876747662991"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Техпідтримка"
+                        }
+                    ]
+                }
+            ]
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
@@ -172,7 +231,22 @@ def get_main_reply_keyboard():
 def get_back_reply_keyboard():
     return {
         "keyboard": [
-            [{"text": f"{em('5960671702059848143', '◀️')} Назад"}]
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "◀️",
+                            "custom_emoji_id": "5960671702059848143"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Назад"
+                        }
+                    ]
+                }
+            ]
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
@@ -181,9 +255,96 @@ def get_back_reply_keyboard():
 def get_cheats_reply_keyboard():
     return {
         "keyboard": [
-            [{"text": f"{em('5451653043089070124', '🔥')} Zolo"}, {"text": f"{em('5276079251089547977', '⚡')} Impact VIP"}],
-            [{"text": f"{em('6172520285330214110', '👑')} King Mod"}, {"text": f"{em('5296273418516187626', '💥')} Inferno"}],
-            [{"text": f"{em('5451841459009379088', '🎮')} Zolo CIS"}, {"text": f"{em('5960671702059848143', '◀️')} Назад"}]
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "🔥",
+                            "custom_emoji_id": "5451653043089070124"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Zolo"
+                        }
+                    ]
+                },
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "⚡",
+                            "custom_emoji_id": "5276079251089547977"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Impact VIP"
+                        }
+                    ]
+                }
+            ],
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "👑",
+                            "custom_emoji_id": "6172520285330214110"
+                        },
+                        {
+                            "type": "text",
+                            "text": " King Mod"
+                        }
+                    ]
+                },
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "💥",
+                            "custom_emoji_id": "5296273418516187626"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Inferno"
+                        }
+                    ]
+                }
+            ],
+            [
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "🎮",
+                            "custom_emoji_id": "5451841459009379088"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Zolo CIS"
+                        }
+                    ]
+                },
+                {
+                    "text": "",
+                    "text_entities": [
+                        {
+                            "type": "custom_emoji",
+                            "text": "◀️",
+                            "custom_emoji_id": "5960671702059848143"
+                        },
+                        {
+                            "type": "text",
+                            "text": " Назад"
+                        }
+                    ]
+                }
+            ]
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
@@ -201,13 +362,14 @@ def get_period_reply_keyboard(cheat):
     row = []
     for i, days in enumerate(PRICES[cheat].keys()):
         days_text = f"{days} дн." if days != "1" else "1 день"
-        row.append({"text": f"{days_text} - {PRICES[cheat][days]}"})
+        button_text = f"{days_text} - {PRICES[cheat][days]}"
+        row.append({"text": button_text})
         if len(row) == 2:
             buttons.append(row)
             row = []
     if row:
         buttons.append(row)
-    buttons.append([{"text": f"{em('5960671702059848143', '◀️')} Назад"}])
+    buttons.append([{"text": "◀️ Назад"}])
     return {
         "keyboard": buttons,
         "resize_keyboard": True,
@@ -217,10 +379,10 @@ def get_period_reply_keyboard(cheat):
 def get_payment_reply_keyboard(cheat, days):
     return {
         "keyboard": [
-            [{"text": f"{em('5393576224729633040', '🏦')} Укр Банк"}],
-            [{"text": f"{em('5247180323120225302', '🏦')} Сбербанк"}],
-            [{"text": f"{em('5208954744818651087', '💎')} CryptoBot"}],
-            [{"text": f"{em('5960671702059848143', '◀️')} Назад"}]
+            [{"text": "🏦 Укр Банк"}],
+            [{"text": "🏦 Сбербанк"}],
+            [{"text": "💎 CryptoBot"}],
+            [{"text": "◀️ Назад"}]
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
@@ -229,11 +391,27 @@ def get_payment_reply_keyboard(cheat, days):
 def get_receipt_reply_keyboard():
     return {
         "keyboard": [
-            [{"text": f"{em('5258205968025525531', '✅')} Я оплатив"}],
-            [{"text": f"{em('5208480322731137426', '❌')} Скасувати"}]
+            [{"text": "✅ Я оплатив"}],
+            [{"text": "❌ Скасувати"}]
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
+    }
+
+def get_subscribe_keyboard():
+    return {
+        "inline_keyboard": [
+            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
+            [{"text": "ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
+        ]
+    }
+
+def get_admin_decision_keyboard(user_id):
+    return {
+        "inline_keyboard": [
+            [{"text": "Одобрити", "callback_data": f"adm_ok_{user_id}", "icon_custom_emoji_id": "5208657859499282838"}],
+            [{"text": "Відхилити", "callback_data": f"adm_no_{user_id}", "icon_custom_emoji_id": "5208480322731137426"}]
+        ]
     }
 
 # --- ОСНОВНЫЕ ФОТО ---
@@ -267,8 +445,7 @@ CHEAT_PHOTOS = {
 
 # --- ХРАНИЛИЩА ---
 waiting = {}
-user_state = {}  # Для отслеживания состояния пользователя
-user_selection = {}  # Для хранения выбора пользователя
+user_selection = {}
 
 # --- ФУНКЦИИ CRYPTOBOT ---
 def create_crypto_invoice(user_id, amount, days, product):
@@ -322,14 +499,6 @@ def check_all_subscriptions(user_id):
             return False, channel["url"], channel["name"]
     return True, None, None
 
-def get_subscribe_keyboard():
-    return {
-        "inline_keyboard": [
-            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
-            [{"text": "ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
-        ]
-    }
-
 # --- ОБРАБОТЧИКИ ---
 def handle_start(chat_id, user_id, username, first_name):
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
@@ -371,7 +540,11 @@ def handle_check_subscription(chat_id, user_id, callback_id, message_id):
                 f"{em('5208657859499282838', '👋')} Ласкаво просимо до ZroglikShop!\n"
                 f"{em('6073605466221451561', '🎯')} Тут ти можеш купити чити для PUBG Mobile")
         
-        # Удаляем сообщение с проверкой и отправляем новое с клавиатурой
+        # Удаляем старое сообщение с клавиатурой подписки и отправляем новое
+        try:
+            api("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+        except:
+            pass
         send_photo(chat_id, MAIN_PHOTO, text, get_main_reply_keyboard())
         answer_callback(callback_id, "✅ Підписка підтверджена!")
     else:
@@ -478,7 +651,6 @@ def handle_period_selection(chat_id, period_text):
     send_message(chat_id, desc, get_payment_reply_keyboard(cheat, days))
 
 def handle_bank_payment(chat_id, cheat, days):
-    user_selection[chat_id]["payment"] = "bank"
     price = PRICES[cheat][days]
     
     text = (f"{em('5890848474563352982', '💳')} <b>Оплата банківською карткою</b>\n\n"
@@ -490,7 +662,6 @@ def handle_bank_payment(chat_id, cheat, days):
     send_message(chat_id, text, get_receipt_reply_keyboard())
 
 def handle_bank_payment_sber(chat_id, cheat, days):
-    user_selection[chat_id]["payment"] = "sber"
     price = PRICES[cheat][days]
     
     text = (f"{em('5247180323120225302', '🏦')} <b>Оплата Сбербанк</b>\n\n"
@@ -791,32 +962,32 @@ def main():
                         try:
                             if text == "/start":
                                 handle_start(chat_id, user_id, username, first_name)
-                            elif text == f"{em('5156877291397055163', '📦')} Каталог" or text == "Каталог":
+                            elif text == "Каталог":
                                 handle_catalog(chat_id)
-                            elif text == f"{em('5904630315946611415', '👤')} Мій кабінет" or text == "Мій кабінет":
+                            elif text == "Мій кабінет":
                                 handle_profile(chat_id, user_id, username, first_name)
-                            elif text == f"{em('5938252440926163756', '⭐')} Відгуки" or text == "Відгуки":
+                            elif text == "Відгуки":
                                 handle_reviews(chat_id)
-                            elif text == f"{em('5208539876747662991', '🎮')} Техпідтримка" or text == "Техпідтримка":
+                            elif text == "Техпідтримка":
                                 handle_support(chat_id)
-                            elif text == f"{em('5960671702059848143', '◀️')} Назад" or text == "Назад":
+                            elif text == "◀️ Назад":
                                 handle_start(chat_id, user_id, username, first_name)
                             elif text in ["Zolo", "Impact VIP", "King Mod", "Inferno", "Zolo CIS"]:
                                 handle_cheat_selection(chat_id, text)
-                            elif text.endswith("грн") or ("дн." in text and "грн" in text):
+                            elif text.endswith("грн") and ("дн." in text or "день" in text):
                                 handle_period_selection(chat_id, text)
-                            elif text == f"{em('5393576224729633040', '🏦')} Укр Банк" or text == "Укр Банк":
+                            elif text == "🏦 Укр Банк":
                                 if chat_id in user_selection:
                                     handle_bank_payment(chat_id, user_selection[chat_id]["cheat"], user_selection[chat_id]["days"])
-                            elif text == f"{em('5247180323120225302', '🏦')} Сбербанк" or text == "Сбербанк":
+                            elif text == "🏦 Сбербанк":
                                 if chat_id in user_selection:
                                     handle_bank_payment_sber(chat_id, user_selection[chat_id]["cheat"], user_selection[chat_id]["days"])
-                            elif text == f"{em('5208954744818651087', '💎')} CryptoBot" or text == "CryptoBot":
+                            elif text == "💎 CryptoBot":
                                 if chat_id in user_selection:
                                     handle_crypto_payment(chat_id, user_selection[chat_id]["cheat"], user_selection[chat_id]["days"], user_id)
-                            elif text == f"{em('5258205968025525531', '✅')} Я оплатив" or text == "Я оплатив":
+                            elif text == "✅ Я оплатив":
                                 handle_send_receipt(chat_id, user_id)
-                            elif text == f"{em('5208480322731137426', '❌')} Скасувати" or text == "Скасувати":
+                            elif text == "❌ Скасувати":
                                 handle_start(chat_id, user_id, username, first_name)
                             elif text.startswith("/ban") and user_id == ADMIN_ID:
                                 handle_ban(chat_id, text)
