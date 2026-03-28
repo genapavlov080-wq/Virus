@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "8522948833:AAFPgQz77GDY2YafZRtNMM9ilcxZ65_2wus"
+BOT_TOKEN = "8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg"
 ADMIN_ID = 1471307057
 CARD = "4441111008011946"
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
