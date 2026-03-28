@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = "8172323730:AAEfo4Eqz8E9HWSNOGF96BHndyjN9anBRLg"
 ADMIN_ID = 1471307057
-CARD = "5167803275649049"  # Новая карта
+CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
@@ -186,7 +186,7 @@ def get_subscribe_keyboard():
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
-# --- КНОПКИ (ТОЛЬКО TG PREMIUM ЭМОДЗИ) ---
+# --- КНОПКИ ---
 def get_main_keyboard():
     return {
         "inline_keyboard": [
@@ -346,27 +346,32 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
         return
     
     user = cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
-    res = cursor.execute('SELECT expiry_date, product_name, last_key FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    
+    # Логируем для отладки
+    if user:
+        logger.info(f"User {user_id}: expiry={user['expiry_date']}, product={user['product_name']}, key={user['last_key']}")
     
     time_left = "Немає активної підписки"
     product = "Немає"
     last_key = ""
     
-    if res and res['expiry_date']:
+    if user and user['expiry_date']:
         try:
-            expiry = datetime.strptime(res['expiry_date'], '%Y-%m-%d %H:%M:%S')
+            expiry = datetime.strptime(user['expiry_date'], '%Y-%m-%d %H:%M:%S')
             diff = expiry - datetime.now()
             if diff.total_seconds() > 0:
                 days = diff.days
                 hours = diff.seconds // 3600
                 time_left = f"{days} дн. {hours} год." if days > 0 else f"{hours} год."
-                product = res['product_name'] if res['product_name'] else "Немає"
-                last_key = res['last_key'] if res['last_key'] else ""
+                product = user['product_name'] if user['product_name'] else "Немає"
+                last_key = user['last_key'] if user['last_key'] else ""
             else:
                 time_left = "❌ Закінчилась"
-                product = res['product_name'] if res['product_name'] else "Немає"
-        except:
-            pass
+                product = user['product_name'] if user['product_name'] else "Немає"
+        except Exception as e:
+            logger.error(f"Error parsing date: {e}")
+            time_left = "Ошибка формата"
+            product = user['product_name'] if user['product_name'] else "Немає"
     
     user_name = user['first_name'] if user and user['first_name'] else str(user_id)
     user_username = user['username'] if user and user['username'] else "Немає"
@@ -595,13 +600,31 @@ def handle_admin_key(chat_id, user_id, key):
     file_text = waiting.get(f"admin_{target_id}_file_text")
     
     expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
-    product_name = product.capitalize() if product != "Unknown" else "Zroglik"
+    product_name = CHEAT_NAMES.get(product, "Zroglik")
     
-    cursor.execute('''
-        INSERT OR REPLACE INTO users (user_id, expiry_date, product_name, subscribed_at, banned, last_key) 
-        VALUES (?, ?, ?, COALESCE((SELECT subscribed_at FROM users WHERE user_id = ?), ?), 0, ?)
-    ''', (target_id, expiry_date, product_name, target_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), key))
+    # Проверяем, существует ли пользователь
+    existing = cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (target_id,)).fetchone()
+    
+    if existing:
+        # Обновляем существующего пользователя
+        cursor.execute('''
+            UPDATE users SET 
+                expiry_date = ?, 
+                product_name = ?, 
+                last_key = ?,
+                banned = 0,
+                ban_reason = NULL
+            WHERE user_id = ?
+        ''', (expiry_date, product_name, key, target_id))
+    else:
+        # Создаем нового пользователя
+        cursor.execute('''
+            INSERT INTO users (user_id, expiry_date, product_name, subscribed_at, banned, last_key) 
+            VALUES (?, ?, ?, ?, 0, ?)
+        ''', (target_id, expiry_date, product_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), key))
+    
     conn.commit()
+    logger.info(f"User {target_id} updated: expiry={expiry_date}, product={product_name}, key={key}")
     
     text = (f"{em('5938252440926163756', '✅')} <b>Замовлення активовано!</b>\n\n"
             f"{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_date}\n"
