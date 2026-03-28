@@ -7,7 +7,7 @@ import requests
 from datetime import datetime, timedelta
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
+BOT_TOKEN = "7872950771:AAHD6f917dOdjDpJXj40ghroek2PWJfbDq8"
 ADMIN_ID = 1471307057
 CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
@@ -18,9 +18,9 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 CRYPTO_TOKEN = "466345:AADMm3mzlC6KGJmwt3r771bUPIx40CMEKhQ"
 CRYPTO_API = "https://pay.crypt.bot/api"
 
-# ID каналов для обязательной подписки
+# ОДИН КАНАЛ для обязательной подписки
 REQUIRED_CHANNELS = [
-    {"id": -1002271436385, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"},
+    {"id": -1002271436385, "url": "https://t.me/+P2DK2IpHKBdiZGUy", "name": "ZroglikCheat_rezelvv"}
 ]
 
 REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
@@ -58,7 +58,7 @@ cursor.execute('''
 conn.commit()
 
 # --- ФУНКЦИИ API ---
-def api(method, data=None, timeout=30):
+def api(method, data=None, timeout=60):
     url = f"{API_URL}/{method}"
     try:
         if data:
@@ -103,11 +103,11 @@ def edit_message_caption(chat_id, message_id, caption, reply_markup=None):
         data["reply_markup"] = reply_markup
     return api("editMessageCaption", data)
 
-def get_updates(offset=None, timeout=30):
+def get_updates(offset=None, timeout=60):
     data = {"timeout": timeout, "allowed_updates": ["message", "callback_query"]}
     if offset is not None:
         data["offset"] = offset
-    return api("getUpdates", data)
+    return api("getUpdates", data, timeout=timeout+5)
 
 def answer_callback(callback_id, text=None, show_alert=False):
     data = {"callback_query_id": callback_id}
@@ -134,7 +134,7 @@ def create_crypto_invoice(user_id, amount, days, product):
         "payload": f"{user_id}|{days}|{product}"
     }
     try:
-        r = requests.post(url, headers=headers, json=data)
+        r = requests.post(url, headers=headers, json=data, timeout=30)
         if r.status_code == 200 and r.json().get("ok"):
             return r.json()["result"]
     except Exception as e:
@@ -146,7 +146,7 @@ def check_crypto_payment(payment_id):
     headers = {"Crypto-Pay-API-Token": CRYPTO_TOKEN}
     params = {"invoice_ids": payment_id}
     try:
-        r = requests.get(url, headers=headers, params=params)
+        r = requests.get(url, headers=headers, params=params, timeout=30)
         if r.status_code == 200 and r.json().get("ok"):
             items = r.json()["result"].get("items", [])
             if items:
@@ -155,7 +155,7 @@ def check_crypto_payment(payment_id):
         print(f"Check payment error: {e}")
     return None
 
-# --- ПРОВЕРКА ПОДПИСКИ ---
+# --- ПРОВЕРКА ПОДПИСКИ (ДЛЯ ОДНОГО КАНАЛА) ---
 def check_all_subscriptions(user_id):
     if user_id == ADMIN_ID:
         return True, None, None
@@ -177,7 +177,6 @@ def get_subscribe_keyboard():
     return {
         "inline_keyboard": [
             [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
-            [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[1]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
             [{"text": "ПРОВЕРИТИ", "callback_data": "check_sub", "icon_custom_emoji_id": "5774022692642492953"}]
         ]
     }
@@ -260,9 +259,10 @@ def get_admin_decision_keyboard(user_id):
         ]
     }
 
-# --- ОСНОВНЫЕ ФОТО ---
+# --- ОСНОВНЫЕ ФОТО (ПРОВЕРЕННЫЕ ССЫЛКИ) ---
 MAIN_PHOTO = "https://files.catbox.moe/6n69h6.jpg"
 PROFILE_PHOTO = "https://files.catbox.moe/kybf8l.png"
+REVIEWS_PHOTO = "https://files.catbox.moe/3z96th.png"
 
 # --- ЦЕНЫ ---
 PRICES = {
@@ -299,9 +299,8 @@ def handle_start(chat_id, user_id, username, first_name, message_id=None):
     subscribed, _, _ = check_all_subscriptions(user_id)
     if not subscribed:
         text = (f"{em('5208806229144524155', '🔒')} <b>Доступ обмежено!</b>\n\n"
-                f"Для доступу до бота необхідно підписатися на канали:\n"
-                f"📢 <b>{REQUIRED_CHANNELS[0]['name']}</b>\n"
-                f"📢 <b>{REQUIRED_CHANNELS[1]['name']}</b>\n\n"
+                f"Для доступу до бота необхідно підписатися на канал:\n"
+                f"📢 <b>{REQUIRED_CHANNELS[0]['name']}</b>\n\n"
                 f"Після підписки натисніть кнопку «ПРОВЕРИТИ»")
         send_photo(chat_id, MAIN_PHOTO, text, get_subscribe_keyboard())
         return
@@ -336,7 +335,7 @@ def handle_check_subscription(chat_id, user_id, message_id):
         edit_message_caption(chat_id, message_id, text, get_main_keyboard())
         answer_callback(message_id, "✅ Підписка підтверджена!")
     else:
-        answer_callback(message_id, "❌ Ви ще не підписалися на всі канали!", True)
+        answer_callback(message_id, "❌ Ви ще не підписалися на канал!", True)
 
 def handle_profile(chat_id, user_id, message_id, username, first_name):
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
@@ -345,8 +344,6 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
         return
     
     user = cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
-    
-    logger.info(f"Profile data for {user_id}: {dict(user) if user else 'None'}")
     
     time_left = "Немає активної підписки"
     product = "Немає"
@@ -665,7 +662,7 @@ def main():
     
     while True:
         try:
-            updates = get_updates(offset, timeout=30)
+            updates = get_updates(offset, timeout=60)
             
             if updates.get('ok') and updates.get('result'):
                 for update in updates['result']:
