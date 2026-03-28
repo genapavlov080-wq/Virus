@@ -22,21 +22,14 @@ REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- СБРОС ВЕБХУКА И ОЧИСТКА ---
-print("🔄 Сброс вебхука и очереди...")
+# --- СБРОС ВЕБХУКА ---
 try:
     urllib.request.urlopen(f"{API_URL}/deleteWebhook?drop_pending_updates=true", timeout=10)
-    print("✅ Webhook удален")
-except:
-    pass
-
-try:
     urllib.request.urlopen(f"{API_URL}/getUpdates?offset=-1", timeout=10)
-    print("✅ Очередь очищена")
+    time.sleep(1)
+    print("✅ Webhook сброшен")
 except:
     pass
-
-time.sleep(2)
 
 # --- БАЗА ДАННЫХ ---
 conn = sqlite3.connect('zroglik.db', timeout=30, check_same_thread=False)
@@ -152,29 +145,29 @@ def get_subscribe_keyboard():
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
-# --- КНОПКИ ---
+# --- КНОПКИ (ВОЗВРАЩАЮ КАК БЫЛО) ---
 def get_main_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Купити ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
-             {"text": "Мій профіль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
-            [{"text": "Наші відгуки", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
-             {"text": "Техпідтримка", "url": "https://t.me/ZrogIikCheat", "icon_custom_emoji_id": "5208539876747662991"}]
+            [{"text": "🔑 Купити ключ", "callback_data": "buy_key", "icon_custom_emoji_id": "5156877291397055163"},
+             {"text": "👤 Мій профіль", "callback_data": "profile", "icon_custom_emoji_id": "5904630315946611415"}],
+            [{"text": "⭐ Наші відгуки", "callback_data": "show_reviews", "icon_custom_emoji_id": "5938252440926163756"},
+             {"text": "🆘 Техпідтримка", "url": "https://t.me/ZrogIikCheat", "icon_custom_emoji_id": "5208539876747662991"}]
         ]
     }
 
 def get_back_button(target):
-    return {"inline_keyboard": [[{"text": "Назад", "callback_data": target, "icon_custom_emoji_id": "5960671702059848143"}]]}
+    return {"inline_keyboard": [[{"text": "⬅️ Назад", "callback_data": target, "icon_custom_emoji_id": "5960671702059848143"}]]}
 
 def get_cheats_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": f"{em('5208876898536414392', '🔥')} Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5208876898536414392"}],
-            [{"text": f"{em('5208876898536414392', '⚡')} Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5208876898536414392"}],
-            [{"text": f"{em('5208876898536414392', '👑')} King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "5208876898536414392"}],
-            [{"text": f"{em('5208876898536414392', '💥')} Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5208876898536414392"}],
-            [{"text": f"{em('5208876898536414392', '🎮')} Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5208876898536414392"}],
-            [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
+            [{"text": "🔥 Zolo", "callback_data": "cheat_zolo", "icon_custom_emoji_id": "5451653043089070124"}],
+            [{"text": "⚡ Impact VIP", "callback_data": "cheat_impact", "icon_custom_emoji_id": "5276079251089547977"}],
+            [{"text": "👑 King Mod", "callback_data": "cheat_king", "icon_custom_emoji_id": "6172520285330214110"}],
+            [{"text": "💥 Inferno", "callback_data": "cheat_inferno", "icon_custom_emoji_id": "5296273418516187626"}],
+            [{"text": "🎮 Zolo CIS", "callback_data": "cheat_zolo_cis", "icon_custom_emoji_id": "5451841459009379088"}],
+            [{"text": "⬅️ Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
@@ -190,39 +183,38 @@ def get_period_keyboard(cheat):
     for days in PRICES[cheat].keys():
         days_text = f"{days} дн." if days != "1" else "1 день"
         buttons.append([{"text": days_text, "callback_data": f"period_{cheat}_{days}", "icon_custom_emoji_id": "5393330385096575682"}])
-    buttons.append([{"text": "Назад", "callback_data": "buy_key", "icon_custom_emoji_id": "5960671702059848143"}])
+    buttons.append([{"text": "⬅️ Назад", "callback_data": "buy_key", "icon_custom_emoji_id": "5960671702059848143"}])
     return {"inline_keyboard": buttons}
 
 def get_payment_keyboard(cheat, days):
     return {
         "inline_keyboard": [
-            [{"text": f"{em('5413879192267805083', '🇺🇦')} Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5413879192267805083"}],
-            [{"text": f"{em('5208954744818651087', '💎')} CryptoBot", "callback_data": f"crypto_{cheat}_{days}", "icon_custom_emoji_id": "5208954744818651087"}],
-            [{"text": "Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
+            [{"text": "🇺🇦 Укр Банк", "callback_data": f"bank_{cheat}_{days}", "icon_custom_emoji_id": "5393576224729633040"}],
+            [{"text": "⬅️ Назад", "callback_data": f"cheat_{cheat}", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
 def get_receipt_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Я оплатив", "callback_data": "send_receipt", "icon_custom_emoji_id": "5258205968025525531"}],
-            [{"text": "Скасувати", "callback_data": "start", "icon_custom_emoji_id": "5208480322731137426"}]
+            [{"text": "✅ Я оплатив", "callback_data": "send_receipt", "icon_custom_emoji_id": "5258205968025525531"}],
+            [{"text": "❌ Скасувати", "callback_data": "start", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
 
 def get_reviews_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "Канал з відгуками", "url": REVIEWS_CHANNEL_URL, "icon_custom_emoji_id": "6028171274939797252"}],
-            [{"text": "Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
+            [{"text": "🔗 Канал з відгуками", "url": REVIEWS_CHANNEL_URL, "icon_custom_emoji_id": "6028171274939797252"}],
+            [{"text": "⬅️ Назад", "callback_data": "start", "icon_custom_emoji_id": "5960671702059848143"}]
         ]
     }
 
 def get_admin_decision_keyboard(user_id):
     return {
         "inline_keyboard": [
-            [{"text": "Одобрити", "callback_data": f"adm_ok_{user_id}", "icon_custom_emoji_id": "5208657859499282838"}],
-            [{"text": "Відхилити", "callback_data": f"adm_no_{user_id}", "icon_custom_emoji_id": "5208480322731137426"}]
+            [{"text": "✅ Одобрити", "callback_data": f"adm_ok_{user_id}", "icon_custom_emoji_id": "5208657859499282838"}],
+            [{"text": "❌ Відхилити", "callback_data": f"adm_no_{user_id}", "icon_custom_emoji_id": "5208480322731137426"}]
         ]
     }
 
@@ -240,11 +232,11 @@ PRICES = {
 }
 
 CHEAT_NAMES = {
-    "zolo": "Zolo Cheat",
-    "impact": "Impact VIP",
-    "king": "King Mod",
-    "inferno": "Inferno Cheat",
-    "zolo_cis": "Zolo CIS Edition"
+    "zolo": "🔥 Zolo Cheat",
+    "impact": "⚡ Impact VIP",
+    "king": "👑 King Mod",
+    "inferno": "💥 Inferno Cheat",
+    "zolo_cis": "🎮 Zolo CIS Edition"
 }
 
 CHEAT_PHOTOS = {
@@ -337,7 +329,7 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
     user_username = user['username'] if user and user['username'] else "Немає"
     
     text = (f"{em('5904630315946611415', '👤')} <b>ПРОФІЛЬ</b>\n\n"
-            f"{em('6032693626394382504', '🆔')} <b>ID:</b> <code>{user_id}</code>\n"
+            f"{em('6032693626394382504', '🆔')} <b>ID:</b> <code>{user_id}</code>\n
             f"{em('5879770735999717115', '📛')} <b>Ім'я:</b> {user_name}\n"
             f"{em('5814247475141153332', '🔖')} <b>Username:</b> @{user_username}\n"
             f"{em('6041730074376410123', '📦')} <b>Товар:</b> {product}\n"
@@ -357,7 +349,7 @@ def handle_buy_key(chat_id, message_id):
     edit_message_caption(chat_id, message_id, text, get_cheats_keyboard())
 
 def show_cheat(chat_id, message_id, cheat):
-    desc = f"{em('5208876898536414392', '🔥')} {CHEAT_NAMES[cheat]}\n\n"
+    desc = f"{CHEAT_NAMES[cheat]}\n\n"
     desc += f"{em('5208806229144524155', '💰')} <b>Ціни:</b>\n"
     
     for days, price in PRICES[cheat].items():
@@ -374,7 +366,7 @@ def handle_select_period(chat_id, message_id, cheat, days):
     
     price = PRICES[cheat][days]
     
-    desc = f"{em('5208876898536414392', '🔥')} {CHEAT_NAMES[cheat]}\n\n📅 {days} дн.\n"
+    desc = f"{CHEAT_NAMES[cheat]}\n\n📅 {days} дн.\n"
     desc += f"💰 {price}\n\n"
     desc += f"{em('5393576224729633040', '💳')} <b>Виберіть спосіб оплати:</b>"
     
@@ -399,8 +391,7 @@ def handle_send_receipt(chat_id, message_id, user_id):
     send_message(chat_id, f"{em('5769126056262898415', '📸')} <b>Надішліть скріншот чека</b> (одним фото)")
 
 def handle_crypto_payment(chat_id, message_id, cheat, days, user_id):
-    # Пока нет криптобота, просто заглушка
-    edit_message_caption(chat_id, message_id, "❌ CryptoBot временно недоступен", get_back_button("start"))
+    edit_message_caption(chat_id, message_id, "❌ CryptoBot тимчасово недоступний", get_back_button("start"))
 
 # --- АДМИН-КОМАНДЫ ---
 def handle_ban(chat_id, text):
@@ -471,7 +462,6 @@ def handle_admin_decision(chat_id, data, user_id):
 def handle_admin_file(chat_id, user_id, msg):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
-        logger.info(f"No admin_target found for user {user_id}")
         return
     
     file_id = None
@@ -479,13 +469,10 @@ def handle_admin_file(chat_id, user_id, msg):
     
     if 'document' in msg:
         file_id = msg['document']['file_id']
-        logger.info(f"Got document file_id: {file_id}")
     elif 'photo' in msg:
         file_id = msg['photo'][-1]['file_id']
-        logger.info(f"Got photo file_id: {file_id}")
     else:
         file_text = msg.get('text', '')
-        logger.info(f"Got text: {file_text}")
     
     waiting[f"admin_{target_id}_file"] = file_id
     waiting[f"admin_{target_id}_file_text"] = file_text
@@ -495,7 +482,7 @@ def handle_admin_file(chat_id, user_id, msg):
 def handle_admin_key(chat_id, user_id, key):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
-        logger.info(f"No admin_target found for key input")
+        logger.info(f"No admin_target found for key input from {user_id}")
         return
     
     product = waiting.get(f"admin_{target_id}_product", "Unknown")
@@ -530,10 +517,10 @@ def handle_admin_key(chat_id, user_id, key):
         
         send_message(chat_id, f"✅ Готово! Товар видано користувачу.")
     except Exception as e:
-        logger.error(f"Error sending to user: {e}")
+        logger.error(f"Error sending to user {target_id}: {e}")
         send_message(chat_id, f"❌ Помилка при відправці: {e}")
     
-    # Очищаем
+    # Очищаем все связанные данные
     for k in list(waiting.keys()):
         if f"admin_{target_id}" in k or k == "admin_target" or f"admin_waiting_for_{target_id}" in k:
             del waiting[k]
@@ -564,7 +551,7 @@ def main():
                         message_id = cb['message']['message_id']
                         data = cb['data']
                         
-                        logger.info(f"Callback: {data}")
+                        logger.info(f"Callback: {data} from {user_id}")
                         
                         if data == "start":
                             handle_start(chat_id, user_id, username, first_name, message_id)
@@ -610,6 +597,8 @@ def main():
                         username = msg['from'].get('username')
                         first_name = msg['from'].get('first_name')
                         text = msg.get('text', '')
+                        
+                        logger.info(f"Message from {user_id}: {text[:50] if text else 'no text'}")
                         
                         if text == "/start":
                             handle_start(chat_id, user_id, username, first_name)
