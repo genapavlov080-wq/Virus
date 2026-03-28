@@ -145,7 +145,7 @@ def get_subscribe_keyboard():
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
-# --- КНОПКИ (ВОЗВРАЩАЮ КАК БЫЛО) ---
+# --- КНОПКИ ---
 def get_main_keyboard():
     return {
         "inline_keyboard": [
@@ -329,7 +329,7 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
     user_username = user['username'] if user and user['username'] else "Немає"
     
     text = (f"{em('5904630315946611415', '👤')} <b>ПРОФІЛЬ</b>\n\n"
-            f"{em('6032693626394382504', '🆔')} <b>ID:</b> <code>{user_id}</code>\n
+            f"{em('6032693626394382504', '🆔')} <b>ID:</b> <code>{user_id}</code>\n"
             f"{em('5879770735999717115', '📛')} <b>Ім'я:</b> {user_name}\n"
             f"{em('5814247475141153332', '🔖')} <b>Username:</b> @{user_username}\n"
             f"{em('6041730074376410123', '📦')} <b>Товар:</b> {product}\n"
@@ -482,7 +482,7 @@ def handle_admin_file(chat_id, user_id, msg):
 def handle_admin_key(chat_id, user_id, key):
     target_id = waiting.get(f"admin_target", 0)
     if not target_id:
-        logger.info(f"No admin_target found for key input from {user_id}")
+        logger.info(f"No admin_target found for key input")
         return
     
     product = waiting.get(f"admin_{target_id}_product", "Unknown")
@@ -499,17 +499,17 @@ def handle_admin_key(chat_id, user_id, key):
     ''', (target_id, expiry_date, product_name, target_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), key))
     conn.commit()
     
-    text = (f"✅ <b>Замовлення активовано!</b>\n\n"
-            f"📅 <b>Діє до:</b> {expiry_date}\n"
-            f"🔑 <b>Ключ:</b> <code>{key}</code>\n\n"
-            f"💜 Дякуємо за покупку в ZroglikShop!")
+    text = (f"{em('5938252440926163756', '✅')} <b>Замовлення активовано!</b>\n\n"
+            f"{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_date}\n"
+            f"{em('6048733173171359488', '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
+            f"{em('5413879192267805083', '💜')} Дякуємо за покупку в ZroglikShop!")
     
     try:
         if file_id:
             send_document(target_id, file_id, text)
             logger.info(f"Sent document to {target_id}")
         elif file_text:
-            send_message(target_id, text + f"\n\n📝 {file_text}")
+            send_message(target_id, text + f"\n\n{em('6039348811363520645', '📝')} {file_text}")
             logger.info(f"Sent text to {target_id}")
         else:
             send_message(target_id, text)
@@ -550,8 +550,6 @@ def main():
                         chat_id = cb['message']['chat']['id']
                         message_id = cb['message']['message_id']
                         data = cb['data']
-                        
-                        logger.info(f"Callback: {data} from {user_id}")
                         
                         if data == "start":
                             handle_start(chat_id, user_id, username, first_name, message_id)
@@ -597,8 +595,6 @@ def main():
                         username = msg['from'].get('username')
                         first_name = msg['from'].get('first_name')
                         text = msg.get('text', '')
-                        
-                        logger.info(f"Message from {user_id}: {text[:50] if text else 'no text'}")
                         
                         if text == "/start":
                             handle_start(chat_id, user_id, username, first_name)
@@ -663,3 +659,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+   
