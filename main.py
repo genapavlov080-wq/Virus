@@ -347,13 +347,10 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
     
     user = cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
     
-    # Логируем для отладки
-    if user:
-        logger.info(f"User {user_id}: expiry={user['expiry_date']}, product={user['product_name']}, key={user['last_key']}")
-    
     time_left = "Немає активної підписки"
     product = "Немає"
     last_key = ""
+    expiry_display = ""
     
     if user and user['expiry_date']:
         try:
@@ -365,6 +362,7 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
                 time_left = f"{days} дн. {hours} год." if days > 0 else f"{hours} год."
                 product = user['product_name'] if user['product_name'] else "Немає"
                 last_key = user['last_key'] if user['last_key'] else ""
+                expiry_display = expiry.strftime('%d.%m.%Y %H:%M')
             else:
                 time_left = "❌ Закінчилась"
                 product = user['product_name'] if user['product_name'] else "Немає"
@@ -385,6 +383,8 @@ def handle_profile(chat_id, user_id, message_id, username, first_name):
     
     if last_key:
         text += f"\n{em('6048733173171359488', '🔑')} <b>Ваш ключ:</b> <code>{last_key}</code>"
+        if expiry_display:
+            text += f"\n{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_display}"
     
     edit_message_caption(chat_id, message_id, text, get_back_button("start"))
 
@@ -601,12 +601,11 @@ def handle_admin_key(chat_id, user_id, key):
     
     expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
     product_name = CHEAT_NAMES.get(product, "Zroglik")
+    expiry_display = datetime.strptime(expiry_date, '%Y-%m-%d %H:%M:%S').strftime('%d.%m.%Y %H:%M')
     
-    # Проверяем, существует ли пользователь
     existing = cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (target_id,)).fetchone()
     
     if existing:
-        # Обновляем существующего пользователя
         cursor.execute('''
             UPDATE users SET 
                 expiry_date = ?, 
@@ -617,33 +616,43 @@ def handle_admin_key(chat_id, user_id, key):
             WHERE user_id = ?
         ''', (expiry_date, product_name, key, target_id))
     else:
-        # Создаем нового пользователя
         cursor.execute('''
             INSERT INTO users (user_id, expiry_date, product_name, subscribed_at, banned, last_key) 
             VALUES (?, ?, ?, ?, 0, ?)
         ''', (target_id, expiry_date, product_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), key))
     
     conn.commit()
-    logger.info(f"User {target_id} updated: expiry={expiry_date}, product={product_name}, key={key}")
     
-    text = (f"{em('5938252440926163756', '✅')} <b>Замовлення активовано!</b>\n\n"
-            f"{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_date}\n"
-            f"{em('6048733173171359488', '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
-            f"{em('5413879192267805083', '💜')} Дякуємо за покупку в ZroglikShop!")
+    user_text = (f"{em('5938252440926163756', '✅')} <b>Замовлення активовано!</b>\n\n"
+                 f"{em('5208474816583063829', '📅')} <b>Діє до:</b> {expiry_display}\n"
+                 f"{em('6048733173171359488', '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
+                 f"{em('5413879192267805083', '💜')} Дякуємо за покупку в ZroglikShop!\n\n"
+                 f"{em('6039348811363520645', '📝')} <b>Інструкція:</b>\n"
+                 f"1. Скачайте чит за посиланням вище\n"
+                 f"2. Вставте ключ {key}\n"
+                 f"3. Насолоджуйтесь грою! 🎮")
+    
+    admin_text = (f"✅ <b>Ключ видано!</b>\n"
+                  f"👤 Користувач: {target_id}\n"
+                  f"📦 Товар: {product_name}\n"
+                  f"📅 {days} дн. до {expiry_display}\n"
+                  f"🔑 Ключ: <code>{key}</code>")
     
     try:
         if file_id:
-            send_document(target_id, file_id, text)
+            send_document(target_id, file_id, user_text)
         elif file_text:
-            send_message(target_id, text + f"\n\n{em('6039348811363520645', '📝')} {file_text}")
+            send_message(target_id, user_text + f"\n\n📝 {file_text}")
         else:
-            send_message(target_id, text)
+            send_message(target_id, user_text)
         
-        send_message(chat_id, f"✅ Готово! Товар видано користувачу.")
+        send_message(chat_id, admin_text)
+        logger.info(f"✅ Выдан ключ {key} пользователю {target_id} на {days} дней")
+        
     except Exception as e:
+        logger.error(f"Error sending to user {target_id}: {e}")
         send_message(chat_id, f"❌ Помилка при відправці: {e}")
     
-    # Очищаем
     for k in list(waiting.keys()):
         if f"admin_{target_id}" in k or k == "admin_target" or f"admin_waiting_for_{target_id}" in k:
             del waiting[k]
@@ -663,7 +672,6 @@ def main():
                 for update in updates['result']:
                     offset = update['update_id'] + 1
                     
-                    # Callback Query
                     if 'callback_query' in update:
                         cb = update['callback_query']
                         cb_id = cb['id']
@@ -716,7 +724,6 @@ def main():
                         
                         answer_callback(cb_id)
                     
-                    # Message
                     elif 'message' in update:
                         msg = update['message']
                         chat_id = msg['chat']['id']
