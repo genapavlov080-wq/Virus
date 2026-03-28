@@ -22,14 +22,21 @@ REVIEWS_CHANNEL_URL = "https://t.me/zroglikrotzivv"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- СБРОС ВЕБХУКА ---
+# --- СБРОС ВЕБХУКА И ОЧИСТКА ---
+print("🔄 Сброс вебхука и очереди...")
 try:
     urllib.request.urlopen(f"{API_URL}/deleteWebhook?drop_pending_updates=true", timeout=10)
+    print("✅ Webhook удален")
+except Exception as e:
+    print(f"Ошибка удаления webhook: {e}")
+
+try:
     urllib.request.urlopen(f"{API_URL}/getUpdates?offset=-1", timeout=10)
-    time.sleep(1)
-    print("✅ Webhook сброшен")
-except:
-    pass
+    print("✅ Очередь очищена")
+except Exception as e:
+    print(f"Ошибка очистки: {e}")
+
+time.sleep(2)
 
 # --- БАЗА ДАННЫХ ---
 conn = sqlite3.connect('zroglik.db', timeout=30, check_same_thread=False)
@@ -52,15 +59,19 @@ cursor.execute('''
 conn.commit()
 
 # --- ФУНКЦИИ API ---
-def api(method, data=None, timeout=60):
+def api(method, data=None, timeout=30):
     url = f"{API_URL}/{method}"
     try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(data).encode() if data else None,
-            headers={'Content-Type': 'application/json'} if data else {},
-            method='POST'
-        )
+        if data:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(data).encode(),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+        else:
+            req = urllib.request.Request(url, method='GET')
+        
         with urllib.request.urlopen(req, timeout=timeout) as response:
             return json.loads(response.read().decode())
     except Exception as e:
@@ -70,7 +81,7 @@ def api(method, data=None, timeout=60):
 def send_message(chat_id, text, reply_markup=None):
     data = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
     if reply_markup:
-        data["reply_markup"] = json.dumps(reply_markup)
+        data["reply_markup"] = reply_markup
     return api("sendMessage", data)
 
 def send_photo(chat_id, photo, caption=None, reply_markup=None):
@@ -78,7 +89,7 @@ def send_photo(chat_id, photo, caption=None, reply_markup=None):
     if caption:
         data["caption"] = caption
     if reply_markup:
-        data["reply_markup"] = json.dumps(reply_markup)
+        data["reply_markup"] = reply_markup
     return api("sendPhoto", data)
 
 def send_document(chat_id, document, caption=None):
@@ -90,14 +101,14 @@ def send_document(chat_id, document, caption=None):
 def edit_message_caption(chat_id, message_id, caption, reply_markup=None):
     data = {"chat_id": chat_id, "message_id": message_id, "caption": caption, "parse_mode": "HTML"}
     if reply_markup:
-        data["reply_markup"] = json.dumps(reply_markup)
+        data["reply_markup"] = reply_markup
     return api("editMessageCaption", data)
 
-def get_updates(offset=None, timeout=60):
-    data = {"timeout": timeout}
+def get_updates(offset=None, timeout=30):
+    data = {"timeout": timeout, "allowed_updates": ["message", "callback_query"]}
     if offset is not None:
         data["offset"] = offset
-    return api("getUpdates", data, timeout=timeout+5)
+    return api("getUpdates", data)
 
 def answer_callback(callback_id, text=None, show_alert=False):
     data = {"callback_query_id": callback_id}
@@ -107,7 +118,7 @@ def answer_callback(callback_id, text=None, show_alert=False):
         data["show_alert"] = True
     return api("answerCallbackQuery", data)
 
-# --- ФУНКЦИЯ ДЛЯ ЭМОДЗИ В ТЕКСТЕ ---
+# --- ФУНКЦИЯ ДЛЯ ЭМОДЗИ ---
 def em(emoji_id, char):
     return f'<tg-emoji emoji-id="{emoji_id}">{char}</tg-emoji>'
 
@@ -130,7 +141,6 @@ def check_all_subscriptions(user_id):
     return True, None, None
 
 def get_subscribe_keyboard():
-    """Инлайн клавиатура для подписки - ТОЛЬКО TG PREMIUM ЭМОДЗИ"""
     return {
         "inline_keyboard": [
             [{"text": "ПОДПИСАТЬСЯ", "url": REQUIRED_CHANNELS[0]["url"], "icon_custom_emoji_id": "5927118708873892465"}],
@@ -142,7 +152,7 @@ def get_subscribe_keyboard():
 # --- ХРАНИЛИЩА ---
 waiting = {}
 
-# --- КНОПКИ (ТОЛЬКО TG PREMIUM ЭМОДЗИ, БЕЗ ОБЫЧНЫХ) ---
+# --- КНОПКИ ---
 def get_main_keyboard():
     return {
         "inline_keyboard": [
@@ -245,7 +255,7 @@ CHEAT_PHOTOS = {
 }
 
 # --- ОБРАБОТЧИКИ ---
-def handle_start(chat_id, user_id, username, first_name):
+def handle_start(chat_id, user_id, username, first_name, message_id=None):
     banned = cursor.execute('SELECT banned FROM users WHERE user_id = ?', (user_id,)).fetchone()
     if banned and banned['banned']:
         send_message(chat_id, "⛔ Ви заблоковані")
@@ -271,7 +281,10 @@ def handle_start(chat_id, user_id, username, first_name):
             f"{em('5208657859499282838', '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em('6073605466221451561', '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
-    send_photo(chat_id, MAIN_PHOTO, text, get_main_keyboard())
+    if message_id:
+        edit_message_caption(chat_id, message_id, text, get_main_keyboard())
+    else:
+        send_photo(chat_id, MAIN_PHOTO, text, get_main_keyboard())
 
 def handle_check_subscription(chat_id, user_id, message_id):
     subscribed, _, _ = check_all_subscriptions(user_id)
@@ -511,20 +524,61 @@ def handle_admin_key(chat_id, user_id, key):
         if f"admin_{target_id}" in k or k == "admin_target":
             del waiting[k]
 
+# --- ОБРАБОТКА АДМИН-РЕШЕНИЙ ---
+def handle_admin_decision(chat_id, data, user_id):
+    parts = data.split("_")
+    if parts[1] == "ok":
+        target_id = int(parts[2])
+        product = waiting.get(f"{target_id}_product", "Unknown")
+        days = waiting.get(f"{target_id}_days", "0")
+        
+        waiting[f"admin_{target_id}_product"] = product
+        waiting[f"admin_{target_id}_days"] = days
+        waiting[f"admin_target"] = target_id
+        
+        send_message(chat_id, f"📎 <b>Надішліть файл з читом</b> (або текст з інструкцією)")
+        waiting[f"admin_{target_id}_waiting"] = "file"
+    else:
+        target_id = int(parts[2])
+        send_message(target_id, f"❌ Ваша оплата була відхилена адміністратором.")
+        send_message(chat_id, f"❌ Відхилено")
+
+def handle_admin_file(chat_id, user_id, msg):
+    target_id = waiting.get(f"admin_target", 0)
+    if not target_id:
+        return
+    
+    file_id = None
+    file_text = None
+    
+    if 'document' in msg:
+        file_id = msg['document']['file_id']
+    elif 'photo' in msg:
+        file_id = msg['photo'][-1]['file_id']
+    else:
+        file_text = msg.get('text', '')
+    
+    waiting[f"admin_{target_id}_file"] = file_id
+    waiting[f"admin_{target_id}_file_text"] = file_text
+    waiting[f"admin_{target_id}_waiting"] = "key"
+    send_message(chat_id, f"🔑 <b>Введіть ключ активації</b>")
+
 # --- ГЛАВНЫЙ ЦИКЛ ---
 def main():
     logger.info("🚀 Запуск ZroglikShop Bot")
     logger.info(f"👑 Адмін ID: {ADMIN_ID}")
     
     offset = 0
+    
     while True:
         try:
-            updates = get_updates(offset, timeout=60)
+            updates = get_updates(offset, timeout=30)
+            
             if updates.get('ok') and updates.get('result'):
                 for update in updates['result']:
                     offset = update['update_id'] + 1
-                    logger.info(f"Update ID: {offset}")
                     
+                    # Callback Query
                     if 'callback_query' in update:
                         cb = update['callback_query']
                         cb_id = cb['id']
@@ -535,10 +589,10 @@ def main():
                         message_id = cb['message']['message_id']
                         data = cb['data']
                         
-                        logger.info(f"Callback: {data} from {user_id}")
+                        logger.info(f"Callback: {data}")
                         
                         if data == "start":
-                            handle_start(chat_id, user_id, username, first_name)
+                            handle_start(chat_id, user_id, username, first_name, message_id)
                         elif data == "check_sub":
                             handle_check_subscription(chat_id, user_id, message_id)
                         elif data == "profile":
@@ -567,8 +621,10 @@ def main():
                             handle_send_receipt(chat_id, message_id, user_id)
                         elif data.startswith("adm_ok_") or data.startswith("adm_no_"):
                             handle_admin_decision(chat_id, data, user_id)
+                        
                         answer_callback(cb_id)
                     
+                    # Message
                     elif 'message' in update:
                         msg = update['message']
                         chat_id = msg['chat']['id']
@@ -634,4 +690,4 @@ def main():
             time.sleep(5)
 
 if __name__ == "__main__":
-    main() 
+    main()
