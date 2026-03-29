@@ -13,7 +13,7 @@ CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 
-# Premium эмодзи ID (ВСЕ)
+# Premium эмодзи ID
 EMOJI = {
     "catalog": "5156877291397055163",
     "profile": "5904630315946611415",
@@ -143,7 +143,7 @@ back_kb = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# ========== INLINE КЛАВИАТУРЫ (ВСЕ С PREMIUM ЭМОДЗИ) ==========
+# ========== INLINE КЛАВИАТУРЫ ==========
 def get_cheats_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Zolo", callback_data="cheat_zolo", icon_custom_emoji_id=EMOJI["zolo"])],
@@ -156,7 +156,7 @@ def get_cheats_kb():
 
 def get_period_kb(cheat):
     buttons = []
-    for days in PRICES[cheat]:
+    for days in PRICES[cheat].keys():
         days_text = f"{days} дн." if days != "1" else "1 день"
         buttons.append([InlineKeyboardButton(text=f"{days_text} - {PRICES[cheat][days]}", callback_data=f"period_{cheat}_{days}", icon_custom_emoji_id=EMOJI["period"])])
     buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_catalog", icon_custom_emoji_id=EMOJI["back"])])
@@ -203,7 +203,7 @@ def get_subscribe_kb():
 
 # ========== ФУНКЦИИ ==========
 def check_subscription(user_id):
-    return True  # Временно отключаем для теста
+    return True
 
 def create_crypto_invoice(user_id, amount, days, product):
     url = "https://pay.crypt.bot/api/createInvoice"
@@ -248,11 +248,6 @@ async def cmd_start(message: types.Message):
     cursor.execute('INSERT OR IGNORE INTO users (user_id, username, first_name) VALUES (?, ?, ?)', (user_id, username, first_name))
     conn.commit()
     
-    if not check_subscription(user_id):
-        text = f"{em(EMOJI['cancel'], '🔒')} <b>Доступ обмежено!</b>\n\nПідпишіться на канал:"
-        await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_subscribe_kb(), parse_mode="HTML")
-        return
-    
     text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
@@ -261,12 +256,6 @@ async def cmd_start(message: types.Message):
         await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=admin_kb, parse_mode="HTML")
     else:
         await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=main_kb, parse_mode="HTML")
-
-@dp.callback_query(F.data == "check_sub")
-async def check_sub(call: types.CallbackQuery):
-    await call.message.delete()
-    await cmd_start(call.message)
-    await call.answer()
 
 @dp.message(F.text == "Каталог")
 async def catalog(message: types.Message):
@@ -432,7 +421,7 @@ async def crypto_payment(call: types.CallbackQuery):
     amount = round(int(price_str) / 43, 2)
     invoice = create_crypto_invoice(user_id, amount, days, cheat)
     if not invoice:
-        await call.message.edit_text(f"{em(EMOJI['cancel'], '❌')} Ошибка создания платежа")
+        await call.message.edit_text(f"{em(EMOJI['cancel'], '❌')} Ошибка создания платежа", parse_mode="HTML")
         return
     cursor.execute('INSERT INTO crypto_payments (payment_id, user_id, amount, days, product, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
                    (str(invoice["invoice_id"]), user_id, amount, days, cheat, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -442,7 +431,6 @@ async def crypto_payment(call: types.CallbackQuery):
             f"{em(EMOJI['calendar'], '📅')} <b>Тариф:</b> {days} дней")
     await call.message.edit_text(text, reply_markup=get_crypto_payment_kb(invoice["pay_url"], invoice["invoice_id"]), parse_mode="HTML")
     await call.answer()
-
 @dp.callback_query(F.data.startswith("check_crypto_"))
 async def check_crypto(call: types.CallbackQuery):
     payment_id = int(call.data.replace("check_crypto_", ""))
