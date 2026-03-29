@@ -13,7 +13,7 @@ CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 
-# Premium эмодзи ID (ВСЕ)
+# Premium эмодзи ID
 EMOJI = {
     "catalog": "5156877291397055163",
     "profile": "5904630315946611415",
@@ -117,6 +117,19 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 waiting = {}
+
+# ========== БЕЗОПАСНОЕ РЕДАКТИРОВАНИЕ ==========
+async def safe_edit(message, text, reply_markup=None):
+    try:
+        await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    except:
+        await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
+
+async def safe_edit_caption(message, caption, reply_markup=None):
+    try:
+        await message.edit_caption(caption=caption, reply_markup=reply_markup, parse_mode="HTML")
+    except:
+        await message.answer(caption, reply_markup=reply_markup, parse_mode="HTML")
 
 # ========== REPLY КЛАВИАТУРЫ ==========
 main_kb = ReplyKeyboardMarkup(
@@ -313,14 +326,21 @@ async def back(message: types.Message):
 # ========== INLINE ОБРАБОТЧИКИ ==========
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(call: types.CallbackQuery):
+    user_id = call.from_user.id
+    text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     await call.message.delete()
-    await cmd_start(call.message)
+    if user_id == ADMIN_ID:
+        await call.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=admin_kb, parse_mode="HTML")
+    else:
+        await call.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=main_kb, parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data == "back_to_catalog")
 async def back_to_catalog(call: types.CallbackQuery):
     text = f"{em(EMOJI['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
-    await call.message.edit_text(text, reply_markup=get_cheats_kb(), parse_mode="HTML")
+    await safe_edit(call.message, text, get_cheats_kb())
     await call.answer()
 
 @dp.callback_query(F.data.startswith("back_to_period_"))
@@ -337,7 +357,7 @@ async def back_to_period(call: types.CallbackQuery):
         await call.message.delete()
         await call.message.answer_photo(photo, caption=desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
     else:
-        await call.message.edit_text(desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
+        await safe_edit(call.message, desc, get_period_kb(cheat))
     await call.answer()
 
 @dp.callback_query(F.data.startswith("cheat_"))
@@ -354,7 +374,7 @@ async def show_cheat(call: types.CallbackQuery):
         await call.message.delete()
         await call.message.answer_photo(photo, caption=desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
     else:
-        await call.message.edit_text(desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
+        await safe_edit(call.message, desc, get_period_kb(cheat))
     await call.answer()
 
 @dp.callback_query(F.data.startswith("period_"))
@@ -366,7 +386,7 @@ async def select_period(call: types.CallbackQuery):
     waiting[f"{call.from_user.id}_days"] = days
     price = PRICES[cheat][days]
     desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI['calendar'], '📅')} {days} дн.\n{em(EMOJI['money'], '💰')} {price}\n\n{em(EMOJI['card'], '💳')} <b>Виберіть спосіб оплати:</b>"
-    await call.message.edit_text(desc, reply_markup=get_payment_kb(cheat, days), parse_mode="HTML")
+    await safe_edit(call.message, desc, get_payment_kb(cheat, days))
     await call.answer()
 
 @dp.callback_query(F.data.startswith("bank_"))
@@ -382,7 +402,7 @@ async def bank_payment(call: types.CallbackQuery):
             f"{em(EMOJI['bank'], '💳')} <b>Карта:</b> <code>{CARD}</code>\n"
             f"{em(EMOJI['cancel'], '❗')} <b>Коментар:</b> За цифрові товари\n\n"
             f"{em(EMOJI['photo'], '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await call.message.edit_text(text, reply_markup=get_receipt_kb(), parse_mode="HTML")
+    await safe_edit(call.message, text, get_receipt_kb())
     await call.answer()
 
 @dp.callback_query(F.data.startswith("bank_sber_"))
@@ -399,7 +419,7 @@ async def sber_payment(call: types.CallbackQuery):
             f"{em(EMOJI['name'], '👤')} <b>Отримувач:</b> {CARD_SBER_NAME}\n"
             f"{em(EMOJI['cancel'], '❗')} <b>Коментар:</b> За цифрові товари\n\n"
             f"{em(EMOJI['photo'], '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await call.message.edit_text(text, reply_markup=get_receipt_kb(), parse_mode="HTML")
+    await safe_edit(call.message, text, get_receipt_kb())
     await call.answer()
 
 @dp.callback_query(F.data.startswith("crypto_"))
@@ -412,7 +432,7 @@ async def crypto_payment(call: types.CallbackQuery):
     amount = round(int(price_str) / 43, 2)
     invoice = create_crypto_invoice(user_id, amount, days, cheat)
     if not invoice:
-        await call.message.edit_text(f"{em(EMOJI['cancel'], '❌')} Ошибка создания платежа", parse_mode="HTML")
+        await safe_edit(call.message, f"{em(EMOJI['cancel'], '❌')} Ошибка создания платежа")
         return
     cursor.execute('INSERT INTO crypto_payments (payment_id, user_id, amount, days, product, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
                    (str(invoice["invoice_id"]), user_id, amount, days, cheat, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -420,7 +440,7 @@ async def crypto_payment(call: types.CallbackQuery):
     text = (f"{em(EMOJI['crypto'], '💎')} <b>Оплата через CryptoBot</b>\n\n"
             f"{em(EMOJI['money'], '💰')} <b>Сума:</b> {amount}$\n"
             f"{em(EMOJI['calendar'], '📅')} <b>Тариф:</b> {days} дней")
-    await call.message.edit_text(text, reply_markup=get_crypto_payment_kb(invoice["pay_url"], invoice["invoice_id"]), parse_mode="HTML")
+    await safe_edit(call.message, text, get_crypto_payment_kb(invoice["pay_url"], invoice["invoice_id"]))
     await call.answer()
 
 @dp.callback_query(F.data.startswith("check_crypto_"))
@@ -438,7 +458,7 @@ async def check_crypto(call: types.CallbackQuery):
             conn.commit()
             text = (f"{em(EMOJI['success'], '✅')} <b>Оплата подтверждена!</b>\n\n"
                     f"{em(EMOJI['calendar'], '📅')} <b>Подписка до:</b> {expiry}")
-            await call.message.edit_text(text, parse_mode="HTML")
+            await safe_edit(call.message, text)
             await bot.send_message(ADMIN_ID, f"{em(EMOJI['money'], '💰')} Новый крипто-платёж\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
             await call.answer("✅ Оплата подтверждена!")
     else:
@@ -447,7 +467,7 @@ async def check_crypto(call: types.CallbackQuery):
 @dp.callback_query(F.data == "send_receipt")
 async def send_receipt(call: types.CallbackQuery):
     waiting[f"{call.from_user.id}_waiting"] = "receipt"
-    await call.message.edit_text(f"{em(EMOJI['photo'], '📸')} Надішліть скріншот чека (одним фото)", parse_mode="HTML")
+    await safe_edit(call.message, f"{em(EMOJI['photo'], '📸')} Надішліть скріншот чека (одним фото)")
     await call.answer()
 
 @dp.message(F.photo)
