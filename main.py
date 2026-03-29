@@ -7,7 +7,6 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.filters import Command
 import requests
 import json
-import traceback
 
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
@@ -289,21 +288,13 @@ def check_crypto_payment(payment_id):
         print(f"Check payment error: {e}")
     return None
 
-# --- БЕЗОПАСНОЕ РЕДАКТИРОВАНИЕ СООБЩЕНИЯ ---
-async def safe_edit_text(message, text, reply_markup=None, parse_mode="HTML"):
+# --- БЕЗОПАСНАЯ ФУНКЦИЯ ДЛЯ РЕДАКТИРОВАНИЯ ---
+async def safe_edit(message, new_text, reply_markup=None):
     try:
-        await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        await message.edit_text(new_text, reply_markup=reply_markup, parse_mode="HTML")
     except Exception as e:
-        print(f"Edit error: {e}")
-        # Если не получилось отредактировать, отправляем новое сообщение
-        await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
-
-async def safe_edit_caption(message, caption, reply_markup=None, parse_mode="HTML"):
-    try:
-        await message.edit_caption(caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)
-    except Exception as e:
-        print(f"Edit caption error: {e}")
-        await message.answer(caption, reply_markup=reply_markup, parse_mode=parse_mode)
+        # Если редактировать нельзя - отправляем новое сообщение
+        await message.answer(new_text, reply_markup=reply_markup, parse_mode="HTML")
 
 # --- ОБРАБОТЧИКИ ---
 @dp.message(Command("start"))
@@ -472,22 +463,23 @@ async def handle_back(message: types.Message):
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_keyboard(is_admin), parse_mode="HTML")
 
-# --- ОБРАБОТКА АДМИН-КОМАНД ---
+# --- ОБРАБОТКА АДМИН-КОМАНД (РАССЫЛКА, БАН, РАЗБАН) ---
 @dp.message()
 async def handle_admin_commands(message: types.Message):
     user_id = message.from_user.id
     if user_id != ADMIN_ID:
         return
     
+    # Бан
     if waiting.get(f"{user_id}_ban") == "waiting":
         waiting[f"{user_id}_ban"] = None
-        args = message.text.split(maxsplit=1)
-        if len(args) < 2:
-            await message.answer("❌ Неправильний формат! ID причина")
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.answer("❌ Формат: ID причина")
             return
         try:
-            target_id = int(args[0])
-            reason = args[1] if len(args) > 1 else "Нарушение правил"
+            target_id = int(parts[0])
+            reason = parts[1] if len(parts) > 1 else "Нарушение"
             cursor.execute('UPDATE users SET banned = 1, ban_reason = ? WHERE user_id = ?', (reason, target_id))
             conn.commit()
             try:
@@ -497,9 +489,10 @@ async def handle_admin_commands(message: types.Message):
             await message.answer(f"✅ Пользователь {target_id} забанен")
             await message.answer("Виберіть дію:", reply_markup=get_admin_keyboard())
         except ValueError:
-            await message.answer("❌ Неверный формат ID")
+            await message.answer("❌ Неверный ID")
         return
     
+    # Разбан
     if waiting.get(f"{user_id}_unban") == "waiting":
         waiting[f"{user_id}_unban"] = None
         try:
@@ -507,20 +500,21 @@ async def handle_admin_commands(message: types.Message):
             cursor.execute('UPDATE users SET banned = 0, ban_reason = NULL WHERE user_id = ?', (target_id,))
             conn.commit()
             try:
-                await bot.send_message(target_id, f"✅ Вы разблокированы")
+                await bot.send_message(target_id, "✅ Вы разблокированы")
             except:
                 pass
             await message.answer(f"✅ Пользователь {target_id} разблокирован")
             await message.answer("Виберіть дію:", reply_markup=get_admin_keyboard())
         except ValueError:
-            await message.answer("❌ Неверный формат ID")
+            await message.answer("❌ Неверный ID")
         return
     
+    # Рассылка
     if waiting.get(f"{user_id}_broadcast") == "waiting":
         waiting[f"{user_id}_broadcast"] = None
         users = cursor.execute('SELECT user_id FROM users WHERE banned = 0').fetchall()
         if not users:
-            await message.answer("📭 Немає користувачів")
+            await message.answer("📭 Нет пользователей")
             return
         sent = 0
         for u in users:
@@ -530,10 +524,11 @@ async def handle_admin_commands(message: types.Message):
             except:
                 pass
             await asyncio.sleep(0.05)
-        await message.answer(f"✅ Розсилка завершена! Відправлено: {sent}")
+        await message.answer(f"✅ Рассылка завершена! Отправлено: {sent}")
         await message.answer("Виберіть дію:", reply_markup=get_admin_keyboard())
         return
 
+# --- INLINE ОБРАБОТЧИКИ ---
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery):
     user_id = callback.from_user.id
@@ -541,17 +536,14 @@ async def back_to_menu(callback: types.CallbackQuery):
     text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
-    try:
-        await callback.message.delete()
-    except:
-        pass
+    await callback.message.delete()
     await callback.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_keyboard(is_admin), parse_mode="HTML")
     await callback.answer()
 
 @dp.callback_query(F.data == "back_to_catalog")
 async def back_to_catalog(callback: types.CallbackQuery):
     text = f"{em(EMOJI['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
-    await safe_edit_text(callback.message, text, get_cheats_inline_keyboard(), "HTML")
+    await safe_edit(callback.message, text, get_cheats_inline_keyboard())
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("back_to_period_"))
@@ -564,13 +556,10 @@ async def back_to_period(callback: types.CallbackQuery):
         desc += f"├ {days_text}: {price}\n"
     desc += f"\n💳 Виберіть період:"
     if photo:
-        try:
-            await callback.message.delete()
-        except:
-            pass
+        await callback.message.delete()
         await callback.message.answer_photo(photo, caption=desc, reply_markup=get_period_keyboard(cheat), parse_mode="HTML")
     else:
-        await safe_edit_text(callback.message, desc, get_period_keyboard(cheat), "HTML")
+        await safe_edit(callback.message, desc, get_period_keyboard(cheat))
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("cheat_"))
@@ -583,13 +572,10 @@ async def show_cheat(callback: types.CallbackQuery):
         desc += f"├ {days_text}: {price}\n"
     desc += f"\n💳 Виберіть період:"
     if photo:
-        try:
-            await callback.message.delete()
-        except:
-            pass
+        await callback.message.delete()
         await callback.message.answer_photo(photo, caption=desc, reply_markup=get_period_keyboard(cheat), parse_mode="HTML")
     else:
-        await safe_edit_text(callback.message, desc, get_period_keyboard(cheat), "HTML")
+        await safe_edit(callback.message, desc, get_period_keyboard(cheat))
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("period_"))
@@ -600,7 +586,7 @@ async def select_period(callback: types.CallbackQuery):
     user_selection[callback.from_user.id] = {"cheat": cheat, "days": days}
     price = PRICES[cheat][days]
     desc = f"{CHEAT_NAMES[cheat]}\n\n📅 {days} дн.\n💰 {price}\n\n💳 Виберіть спосіб оплати:"
-    await safe_edit_text(callback.message, desc, get_payment_keyboard(cheat, days), "HTML")
+    await safe_edit(callback.message, desc, get_payment_keyboard(cheat, days))
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("bank_"))
@@ -612,7 +598,7 @@ async def bank_payment(callback: types.CallbackQuery):
     waiting[f"{callback.from_user.id}_days"] = days
     price = PRICES[cheat][days]
     text = (f"💳 Оплата банківською карткою\n\n💰 Сума: {price}\n💳 Карта: <code>{CARD}</code>\n❗ Коментар: За цифрові товари\n\n📸 Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await safe_edit_text(callback.message, text, get_receipt_keyboard(), "HTML")
+    await safe_edit(callback.message, text, get_receipt_keyboard())
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("bank_sber_"))
@@ -624,7 +610,7 @@ async def sber_payment(callback: types.CallbackQuery):
     waiting[f"{callback.from_user.id}_days"] = days
     price = PRICES[cheat][days]
     text = (f"🏦 Оплата Сбербанк\n\n💰 Сума: {price}\n💳 Карта: <code>{CARD_SBER}</code>\n👤 Отримувач: {CARD_SBER_NAME}\n❗ Коментар: За цифрові товари\n\n📸 Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await safe_edit_text(callback.message, text, get_receipt_keyboard(), "HTML")
+    await safe_edit(callback.message, text, get_receipt_keyboard())
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("crypto_"))
@@ -637,13 +623,13 @@ async def crypto_payment(callback: types.CallbackQuery):
     amount = round(int(price_str) / 43, 2)
     invoice = create_crypto_invoice(user_id, amount, days, cheat)
     if not invoice:
-        await safe_edit_text(callback.message, "❌ Ошибка создания платежа", None, "HTML")
+        await safe_edit(callback.message, "❌ Ошибка создания платежа")
         return
     cursor.execute('INSERT INTO crypto_payments (payment_id, user_id, amount, days, product, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
                    (str(invoice["invoice_id"]), user_id, amount, days, cheat, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     conn.commit()
     text = (f"💎 Оплата через CryptoBot\n\n💰 Сума: {amount}$\n📅 Тариф: {days} дней")
-    await safe_edit_text(callback.message, text, get_crypto_payment_keyboard(invoice["pay_url"], invoice["invoice_id"]), "HTML")
+    await safe_edit(callback.message, text, get_crypto_payment_keyboard(invoice["pay_url"], invoice["invoice_id"]))
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("check_crypto_"))
@@ -660,7 +646,7 @@ async def check_crypto(callback: types.CallbackQuery):
             cursor.execute('UPDATE crypto_payments SET status = "paid" WHERE payment_id = ?', (str(payment_id),))
             conn.commit()
             text = (f"✅ Оплата подтверждена!\n\n📅 Подписка до: {expiry}")
-            await safe_edit_text(callback.message, text, None, "HTML")
+            await safe_edit(callback.message, text)
             await bot.send_message(ADMIN_ID, f"💰 Новый крипто-платёж\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
             await callback.answer("✅ Оплата подтверждена!")
     else:
@@ -669,7 +655,7 @@ async def check_crypto(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "send_receipt")
 async def send_receipt(callback: types.CallbackQuery):
     waiting[f"{callback.from_user.id}_waiting"] = "receipt"
-    await safe_edit_text(callback.message, "📸 Надішліть скріншот чека (одним фото)", None, "HTML")
+    await safe_edit(callback.message, "📸 Надішліть скріншот чека (одним фото)")
     await callback.answer()
 
 @dp.message(F.photo)
