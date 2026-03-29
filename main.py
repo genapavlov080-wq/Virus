@@ -7,7 +7,6 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.filters import Command
 import requests
 import json
-import sys
 
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
@@ -175,7 +174,10 @@ def get_admin_keyboard():
         keyboard=[
             [KeyboardButton(text="Статистика", icon_custom_emoji_id=EMOJI["stats"])],
             [KeyboardButton(text="Розсилка", icon_custom_emoji_id=EMOJI["broadcast"])],
-            [KeyboardButton(text="Забанити", icon_custom_emoji_id=EMOJI["ban"]), KeyboardButton(text="Розбанити", icon_custom_emoji_id=EMOJI["unban"])],
+            [
+                KeyboardButton(text="Забанити", icon_custom_emoji_id=EMOJI["ban"]),
+                KeyboardButton(text="Розбанити", icon_custom_emoji_id=EMOJI["unban"])
+            ],
             [KeyboardButton(text="Назад", icon_custom_emoji_id=EMOJI["back"])]
         ],
         resize_keyboard=True,
@@ -452,8 +454,9 @@ async def handle_back(message: types.Message):
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_keyboard(is_admin), parse_mode="HTML")
-
-@async def handle_admin_commands(message: types.Message):
+# --- ОБРАБОТКА АДМИН-КОМАНД ---
+@dp.message()
+async def handle_admin_commands(message: types.Message):
     user_id = message.from_user.id
     if user_id != ADMIN_ID:
         return
@@ -749,4 +752,4 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main()) 
