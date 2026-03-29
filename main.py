@@ -156,9 +156,9 @@ def get_cheats_kb():
 
 def get_period_kb(cheat):
     buttons = []
-    for days in PRICES[cheat].keys():
+    for days, price in PRICES[cheat].items():
         days_text = f"{days} дн." if days != "1" else "1 день"
-        buttons.append([InlineKeyboardButton(text=f"{days_text} - {PRICES[cheat][days]}", callback_data=f"period_{cheat}_{days}", icon_custom_emoji_id=EMOJI["period"])])
+        buttons.append([InlineKeyboardButton(text=f"{days_text} - {price}", callback_data=f"period_{cheat}_{days}", icon_custom_emoji_id=EMOJI["period"])])
     buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_catalog", icon_custom_emoji_id=EMOJI["back"])])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -431,6 +431,7 @@ async def crypto_payment(call: types.CallbackQuery):
             f"{em(EMOJI['calendar'], '📅')} <b>Тариф:</b> {days} дней")
     await call.message.edit_text(text, reply_markup=get_crypto_payment_kb(invoice["pay_url"], invoice["invoice_id"]), parse_mode="HTML")
     await call.answer()
+
 @dp.callback_query(F.data.startswith("check_crypto_"))
 async def check_crypto(call: types.CallbackQuery):
     payment_id = int(call.data.replace("check_crypto_", ""))
