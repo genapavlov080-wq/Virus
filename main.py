@@ -14,7 +14,7 @@ CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 
 # Premium эмодзи ID
-EMOJI = {
+EMOJI_IDS = {
     "catalog": "5156877291397055163",
     "profile": "5904630315946611415",
     "reviews": "5938252440926163756",
@@ -119,95 +119,87 @@ dp = Dispatcher()
 
 waiting = {}
 
-# ========== БЕЗОПАСНОЕ РЕДАКТИРОВАНИЕ ==========
-async def safe_edit(message, text, reply_markup=None):
-    try:
-        await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
-    except:
-        await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
-
-async def safe_edit_caption(message, caption, reply_markup=None):
-    try:
-        await message.edit_caption(caption=caption, reply_markup=reply_markup, parse_mode="HTML")
-    except:
-        await message.answer(caption, reply_markup=reply_markup, parse_mode="HTML")
-
-# ========== REPLY КЛАВИАТУРЫ ==========
+# ========== КЛАВИАТУРЫ ==========
 def get_main_kb(is_admin=False):
     kb = [
-        [KeyboardButton(text="Каталог", icon_custom_emoji_id=EMOJI["catalog"])],
-        [KeyboardButton(text="Мій кабінет", icon_custom_emoji_id=EMOJI["profile"])],
-        [KeyboardButton(text="Відгуки", icon_custom_emoji_id=EMOJI["reviews"]), KeyboardButton(text="Техпідтримка", icon_custom_emoji_id=EMOJI["support"])]
+        [KeyboardButton(text=em(EMOJI_IDS["catalog"], "📦") + " Каталог", icon_custom_emoji_id=EMOJI_IDS["catalog"])],
+        [KeyboardButton(text=em(EMOJI_IDS["profile"], "👤") + " Мій кабінет", icon_custom_emoji_id=EMOJI_IDS["profile"])],
+        [
+            KeyboardButton(text=em(EMOJI_IDS["reviews"], "⭐") + " Відгуки", icon_custom_emoji_id=EMOJI_IDS["reviews"]),
+            KeyboardButton(text=em(EMOJI_IDS["support"], "🎮") + " Техпідтримка", icon_custom_emoji_id=EMOJI_IDS["support"])
+        ]
     ]
     if is_admin:
-        kb.append([KeyboardButton(text="Адмін панель", icon_custom_emoji_id=EMOJI["admin"])])
+        kb.append([KeyboardButton(text=em(EMOJI_IDS["admin"], "👑") + " Адмін панель", icon_custom_emoji_id=EMOJI_IDS["admin"])])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-admin_panel_kb = ReplyKeyboardMarkup(
+admin_kb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="Статистика", icon_custom_emoji_id=EMOJI["stats"])],
-        [KeyboardButton(text="Розсилка", icon_custom_emoji_id=EMOJI["broadcast"])],
-        [KeyboardButton(text="Забанити", icon_custom_emoji_id=EMOJI["ban"]), KeyboardButton(text="Розбанити", icon_custom_emoji_id=EMOJI["unban"])],
-        [KeyboardButton(text="Назад", icon_custom_emoji_id=EMOJI["back"])]
+        [KeyboardButton(text=em(EMOJI_IDS["stats"], "📊") + " Статистика", icon_custom_emoji_id=EMOJI_IDS["stats"])],
+        [KeyboardButton(text=em(EMOJI_IDS["broadcast"], "📢") + " Розсилка", icon_custom_emoji_id=EMOJI_IDS["broadcast"])],
+        [
+            KeyboardButton(text=em(EMOJI_IDS["ban"], "⛔") + " Забанити", icon_custom_emoji_id=EMOJI_IDS["ban"]),
+            KeyboardButton(text=em(EMOJI_IDS["unban"], "✅") + " Розбанити", icon_custom_emoji_id=EMOJI_IDS["unban"])
+        ],
+        [KeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", icon_custom_emoji_id=EMOJI_IDS["back"])]
     ],
     resize_keyboard=True
 )
 
 back_kb = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="Назад", icon_custom_emoji_id=EMOJI["back"])]],
+    keyboard=[[KeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", icon_custom_emoji_id=EMOJI_IDS["back"])]],
     resize_keyboard=True
 )
 
-# ========== INLINE КЛАВИАТУРЫ ==========
 def get_cheats_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Zolo", callback_data="cheat_zolo", icon_custom_emoji_id=EMOJI["zolo"])],
-        [InlineKeyboardButton(text="Impact VIP", callback_data="cheat_impact", icon_custom_emoji_id=EMOJI["impact"])],
-        [InlineKeyboardButton(text="King Mod", callback_data="cheat_king", icon_custom_emoji_id=EMOJI["king"])],
-        [InlineKeyboardButton(text="Inferno", callback_data="cheat_inferno", icon_custom_emoji_id=EMOJI["inferno"])],
-        [InlineKeyboardButton(text="Zolo CIS", callback_data="cheat_zolo_cis", icon_custom_emoji_id=EMOJI["zolo_cis"])],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI["back"])]
+        [InlineKeyboardButton(text="Zolo", callback_data="cheat_zolo", icon_custom_emoji_id=EMOJI_IDS["zolo"])],
+        [InlineKeyboardButton(text="Impact VIP", callback_data="cheat_impact", icon_custom_emoji_id=EMOJI_IDS["impact"])],
+        [InlineKeyboardButton(text="King Mod", callback_data="cheat_king", icon_custom_emoji_id=EMOJI_IDS["king"])],
+        [InlineKeyboardButton(text="Inferno", callback_data="cheat_inferno", icon_custom_emoji_id=EMOJI_IDS["inferno"])],
+        [InlineKeyboardButton(text="Zolo CIS", callback_data="cheat_zolo_cis", icon_custom_emoji_id=EMOJI_IDS["zolo_cis"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI_IDS["back"])]
     ])
 
 def get_period_kb(cheat):
     buttons = []
     for days, price in PRICES[cheat].items():
         days_text = f"{days} дн." if days != "1" else "1 день"
-        buttons.append([InlineKeyboardButton(text=f"{days_text} - {price}", callback_data=f"period_{cheat}_{days}", icon_custom_emoji_id=EMOJI["period"])])
-    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_catalog", icon_custom_emoji_id=EMOJI["back"])])
+        buttons.append([InlineKeyboardButton(text=f"{days_text} - {price}", callback_data=f"period_{cheat}_{days}", icon_custom_emoji_id=EMOJI_IDS["period"])])
+    buttons.append([InlineKeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", callback_data="back_to_catalog", icon_custom_emoji_id=EMOJI_IDS["back"])])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def get_payment_kb(cheat, days):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Укр Банк", callback_data=f"bank_{cheat}_{days}", icon_custom_emoji_id=EMOJI["bank"])],
-        [InlineKeyboardButton(text="Сбербанк", callback_data=f"bank_sber_{cheat}_{days}", icon_custom_emoji_id=EMOJI["sber"])],
-        [InlineKeyboardButton(text="CryptoBot", callback_data=f"crypto_{cheat}_{days}", icon_custom_emoji_id=EMOJI["crypto"])],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"back_to_period_{cheat}", icon_custom_emoji_id=EMOJI["back"])]
+        [InlineKeyboardButton(text=em(EMOJI_IDS["bank"], "💳") + " Укр Банк", callback_data=f"bank_{cheat}_{days}", icon_custom_emoji_id=EMOJI_IDS["bank"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["sber"], "🏦") + " Сбербанк", callback_data=f"bank_sber_{cheat}_{days}", icon_custom_emoji_id=EMOJI_IDS["sber"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["crypto"], "💎") + " CryptoBot", callback_data=f"crypto_{cheat}_{days}", icon_custom_emoji_id=EMOJI_IDS["crypto"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", callback_data=f"back_to_period_{cheat}", icon_custom_emoji_id=EMOJI_IDS["back"])]
     ])
 
 def get_receipt_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Я оплатив", callback_data="send_receipt", icon_custom_emoji_id=EMOJI["receipt"])],
-        [InlineKeyboardButton(text="Скасувати", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI["cancel"])]
+        [InlineKeyboardButton(text=em(EMOJI_IDS["receipt"], "✅") + " Я оплатив", callback_data="send_receipt", icon_custom_emoji_id=EMOJI_IDS["receipt"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["cancel"], "❌") + " Скасувати", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI_IDS["cancel"])]
     ])
 
 def get_reviews_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Канал з відгуками", url="https://t.me/zroglikrotzivv", icon_custom_emoji_id=EMOJI["reviews"])],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI["back"])]
+        [InlineKeyboardButton(text=em(EMOJI_IDS["reviews"], "⭐") + " Канал з відгуками", url="https://t.me/zroglikrotzivv", icon_custom_emoji_id=EMOJI_IDS["reviews"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI_IDS["back"])]
     ])
 
 def get_admin_decision_kb(user_id):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Одобрити", callback_data=f"adm_ok_{user_id}", icon_custom_emoji_id=EMOJI["approve"])],
-        [InlineKeyboardButton(text="Відхилити", callback_data=f"adm_no_{user_id}", icon_custom_emoji_id=EMOJI["cancel"])]
+        [InlineKeyboardButton(text=em(EMOJI_IDS["approve"], "✅") + " Одобрити", callback_data=f"adm_ok_{user_id}", icon_custom_emoji_id=EMOJI_IDS["approve"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["cancel"], "❌") + " Відхилити", callback_data=f"adm_no_{user_id}", icon_custom_emoji_id=EMOJI_IDS["cancel"])]
     ])
 
 def get_crypto_payment_kb(pay_url, invoice_id):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💎 Оплатить", url=pay_url, icon_custom_emoji_id=EMOJI["crypto"])],
-        [InlineKeyboardButton(text="Проверить оплату", callback_data=f"check_crypto_{invoice_id}", icon_custom_emoji_id=EMOJI["check"])],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI["back"])]
+        [InlineKeyboardButton(text=em(EMOJI_IDS["crypto"], "💎") + " Оплатить", url=pay_url, icon_custom_emoji_id=EMOJI_IDS["crypto"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["check"], "✅") + " Проверить оплату", callback_data=f"check_crypto_{invoice_id}", icon_custom_emoji_id=EMOJI_IDS["check"])],
+        [InlineKeyboardButton(text=em(EMOJI_IDS["back"], "◀️") + " Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI_IDS["back"])]
     ])
 
 # ========== ФУНКЦИИ ==========
@@ -244,7 +236,7 @@ def check_crypto_payment(payment_id):
         pass
     return None
 
-# ========== ОБРАБОТЧИКИ ==========
+# ========== ОСНОВНЫЕ ОБРАБОТЧИКИ ==========
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
@@ -254,19 +246,19 @@ async def cmd_start(message: types.Message):
     cursor.execute('INSERT OR IGNORE INTO users (user_id, username, first_name) VALUES (?, ?, ?)', (user_id, username, first_name))
     conn.commit()
     
-    text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
-            f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
-            f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+    text = (f"{em(EMOJI_IDS['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em(EMOJI_IDS['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em(EMOJI_IDS['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
     is_admin = (user_id == ADMIN_ID)
     await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
 
-@dp.message(F.text == "Каталог")
+@dp.message(F.text.contains("Каталог"))
 async def catalog(message: types.Message):
-    text = f"{em(EMOJI['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
+    text = f"{em(EMOJI_IDS['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
     await message.answer(text, reply_markup=get_cheats_kb(), parse_mode="HTML")
 
-@dp.message(F.text == "Мій кабінет")
+@dp.message(F.text.contains("Мій кабінет"))
 async def profile(message: types.Message):
     user_id = message.from_user.id
     user = cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
@@ -275,66 +267,94 @@ async def profile(message: types.Message):
         expiry = datetime.strptime(user[3], '%Y-%m-%d %H:%M:%S')
         diff = expiry - datetime.now()
         if diff.total_seconds() > 0:
-            days = diff.days
-            hours = diff.seconds // 3600
-            time_left = f"{days} дн. {hours} год." if days > 0 else f"{hours} год."
+            time_left = f"{diff.days} дн. {diff.seconds//3600} год."
             product = user[4] or "Немає"
-            last_key = user[6] or "Немає"
+            key = user[6] or "Немає"
             expiry_display = expiry.strftime('%d.%m.%Y %H:%M')
         else:
-            time_left = f"{em(EMOJI['cancel'], '❌')} Закінчилась"
+            time_left = f"{em(EMOJI_IDS['cancel'], '❌')} Закінчилась"
             product = user[4] or "Немає"
-            last_key = user[6] or "Немає"
+            key = user[6] or "Немає"
             expiry_display = "Немає"
     else:
         time_left = "Немає підписки"
         product = "Немає"
-        last_key = "Немає"
+        key = "Немає"
         expiry_display = "Немає"
     
-    user_name = user['first_name'] if user and user['first_name'] else str(user_id)
-    user_username = user['username'] if user and user['username'] else "Немає"
-    
-    text = (f"{em(EMOJI['profile'], '👤')} <b>МІЙ КАБІНЕТ</b>\n\n"
-            f"{em(EMOJI['id_emoji'], '🆔')} <b>ID:</b> <code>{user_id}</code>\n"
-            f"{em(EMOJI['name'], '📛')} <b>Ім'я:</b> {user_name}\n"
-            f"{em(EMOJI['username'], '🔖')} <b>Username:</b> @{user_username}\n"
-            f"{em(EMOJI['product_emoji'], '📦')} <b>Товар:</b> {product}\n"
-            f"{em(EMOJI['time'], '⏳')} <b>Залишилось:</b> {time_left}\n"
-            f"{em(EMOJI['key'], '🔑')} <b>Ключ:</b> <code>{last_key}</code>\n"
-            f"{em(EMOJI['date'], '📅')} <b>Діє до:</b> {expiry_display}")
+    text = (f"{em(EMOJI_IDS['profile'], '👤')} <b>МІЙ КАБІНЕТ</b>\n\n"
+            f"{em(EMOJI_IDS['id_emoji'], '🆔')} <b>ID:</b> <code>{user_id}</code>\n"
+            f"{em(EMOJI_IDS['name'], '📛')} <b>Ім'я:</b> {message.from_user.first_name}\n"
+            f"{em(EMOJI_IDS['username'], '🔖')} <b>Username:</b> @{message.from_user.username or 'Немає'}\n"
+            f"{em(EMOJI_IDS['product_emoji'], '📦')} <b>Товар:</b> {product}\n"
+            f"{em(EMOJI_IDS['time'], '⏳')} <b>Залишилось:</b> {time_left}\n"
+            f"{em(EMOJI_IDS['key'], '🔑')} <b>Ключ:</b> <code>{key}</code>\n"
+            f"{em(EMOJI_IDS['date'], '📅')} <b>Діє до:</b> {expiry_display}")
     
     await message.answer(text, reply_markup=back_kb, parse_mode="HTML")
 
-@dp.message(F.text == "Відгуки")
+@dp.message(F.text.contains("Відгуки"))
 async def reviews(message: types.Message):
-    text = f"{em(EMOJI['reviews'], '⭐')} <b>Наші відгуки</b>"
+    text = f"{em(EMOJI_IDS['reviews'], '⭐')} <b>Наші відгуки</b>"
     await message.answer(text, reply_markup=get_reviews_kb(), parse_mode="HTML")
 
-@dp.message(F.text == "Техпідтримка")
+@dp.message(F.text.contains("Техпідтримка"))
 async def support(message: types.Message):
-    text = f"{em(EMOJI['support'], '🎮')} <b>Технічна підтримка</b>\n\nЗв'яжіться з нами: @ZrogIikCheat"
+    text = f"{em(EMOJI_IDS['support'], '🎮')} <b>Технічна підтримка</b>\n\nЗв'яжіться з нами: @ZrogIikCheat"
     await message.answer(text, reply_markup=back_kb, parse_mode="HTML")
 
-@dp.message(F.text == "Адмін панель")
+@dp.message(F.text.contains("Адмін панель"))
 async def admin_panel(message: types.Message):
     if message.from_user.id != ADMIN_ID:
-        await message.answer(f"{em(EMOJI['cancel'], '⛔')} У вас немає доступу до адмін-панелі", parse_mode="HTML")
+        await message.answer(f"{em(EMOJI_IDS['cancel'], '⛔')} У вас немає доступу до адмін-панелі", parse_mode="HTML")
         return
-    text = f"{em(EMOJI['admin'], '👑')} <b>АДМІН ПАНЕЛЬ</b>\n\nВиберіть дію:"
-    await message.answer(text, reply_markup=admin_panel_kb, parse_mode="HTML")
+    text = f"{em(EMOJI_IDS['admin'], '👑')} <b>АДМІН ПАНЕЛЬ</b>\n\nВиберіть дію:"
+    await message.answer(text, reply_markup=admin_kb, parse_mode="HTML")
 
-@dp.message(F.text == "Назад")
+@dp.message(F.text.contains("Статистика"))
+async def stats(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    total = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+    banned = cursor.execute('SELECT COUNT(*) FROM users WHERE banned = 1').fetchone()[0]
+    active = cursor.execute('SELECT COUNT(*) FROM users WHERE expiry_date > ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),)).fetchone()[0]
+    text = (f"{em(EMOJI_IDS['stats'], '📊')} <b>Статистика</b>\n\n"
+            f"{em(EMOJI_IDS['catalog'], '👥')} <b>Всього:</b> {total}\n"
+            f"{em(EMOJI_IDS['success'], '✅')} <b>Активних:</b> {active}\n"
+            f"{em(EMOJI_IDS['cancel'], '⛔')} <b>Забанено:</b> {banned}")
+    await message.answer(text, reply_markup=admin_kb, parse_mode="HTML")
+
+@dp.message(F.text.contains("Розсилка"))
+async def broadcast_prompt(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    waiting[f"{message.from_user.id}_broadcast"] = "waiting"
+    await message.answer(f"{em(EMOJI_IDS['broadcast'], '📢')} Надішліть повідомлення для розсилки", reply_markup=back_kb, parse_mode="HTML")
+
+@dp.message(F.text.contains("Забанити"))
+async def ban_prompt(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    waiting[f"{message.from_user.id}_ban"] = "waiting"
+    await message.answer(f"{em(EMOJI_IDS['ban'], '⛔')} Введіть ID користувача та причину\nФормат: ID причина", parse_mode="HTML")
+
+@dp.message(F.text.contains("Розбанити"))
+async def unban_prompt(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    waiting[f"{message.from_user.id}_unban"] = "waiting"
+    await message.answer(f"{em(EMOJI_IDS['unban'], '✅')} Введіть ID користувача", parse_mode="HTML")
+
+@dp.message(F.text.contains("Назад"))
 async def back(message: types.Message):
     user_id = message.from_user.id
-    text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
-            f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
-            f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+    text = (f"{em(EMOJI_IDS['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em(EMOJI_IDS['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em(EMOJI_IDS['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
     waiting.pop(f"{user_id}_broadcast", None)
     waiting.pop(f"{user_id}_ban", None)
     waiting.pop(f"{user_id}_unban", None)
-    waiting.pop(f"admin_{user_id}_state", None)
     
     is_admin = (user_id == ADMIN_ID)
     await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
@@ -343,9 +363,9 @@ async def back(message: types.Message):
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(call: types.CallbackQuery):
     user_id = call.from_user.id
-    text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
-            f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
-            f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+    text = (f"{em(EMOJI_IDS['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+            f"{em(EMOJI_IDS['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+            f"{em(EMOJI_IDS['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     await call.message.delete()
     is_admin = (user_id == ADMIN_ID)
     await call.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
@@ -353,44 +373,52 @@ async def back_to_menu(call: types.CallbackQuery):
 
 @dp.callback_query(F.data == "back_to_catalog")
 async def back_to_catalog(call: types.CallbackQuery):
-    text = f"{em(EMOJI['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
-    await safe_edit(call.message, text, get_cheats_kb())
+    text = f"{em(EMOJI_IDS['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
+    try:
+        await call.message.edit_text(text, reply_markup=get_cheats_kb(), parse_mode="HTML")
+    except:
+        await call.message.answer(text, reply_markup=get_cheats_kb(), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("back_to_period_"))
 async def back_to_period(call: types.CallbackQuery):
     cheat = call.data.split("_")[3]
     photo = CHEAT_PHOTOS.get(cheat)
-    desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI['money'], '💰')} <b>Ціни:</b>\n"
+    desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI_IDS['money'], '💰')} <b>Ціни:</b>\n"
     for days, price in PRICES[cheat].items():
         days_text = f"{days} дн." if days != "1" else "1 день"
-        desc += f"├ {days_text}: {em(EMOJI['money'], '💰')} {price}\n"
-    desc += f"\n{em(EMOJI['period'], '💳')} <b>Виберіть період:</b>"
+        desc += f"├ {days_text}: {em(EMOJI_IDS['money'], '💰')} {price}\n"
+    desc += f"\n{em(EMOJI_IDS['period'], '💳')} <b>Виберіть період:</b>"
     
     if photo:
         await call.message.delete()
         await call.message.answer_photo(photo, caption=desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
     else:
-        await safe_edit(call.message, desc, get_period_kb(cheat))
+        try:
+            await call.message.edit_text(desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
+        except:
+            await call.message.answer(desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("cheat_"))
 async def show_cheat(call: types.CallbackQuery):
     cheat = call.data.split("_")[1]
     photo = CHEAT_PHOTOS.get(cheat)
-    desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI['money'], '💰')} <b>Ціни:</b>\n"
+    desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI_IDS['money'], '💰')} <b>Ціни:</b>\n"
     for days, price in PRICES[cheat].items():
         days_text = f"{days} дн." if days != "1" else "1 день"
-        desc += f"├ {days_text}: {em(EMOJI['money'], '💰')} {price}\n"
-    desc += f"\n{em(EMOJI['period'], '💳')} <b>Виберіть період:</b>"
+        desc += f"├ {days_text}: {em(EMOJI_IDS['money'], '💰')} {price}\n"
+    desc += f"\n{em(EMOJI_IDS['period'], '💳')} <b>Виберіть період:</b>"
     
     if photo:
         await call.message.delete()
         await call.message.answer_photo(photo, caption=desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
     else:
-        await safe_edit(call.message, desc, get_period_kb(cheat))
+        try:
+            await call.message.edit_text(desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
+        except:
+            await call.message.answer(desc, reply_markup=get_period_kb(cheat), parse_mode="HTML")
     await call.answer()
-
 @dp.callback_query(F.data.startswith("period_"))
 async def select_period(call: types.CallbackQuery):
     parts = call.data.split("_")
@@ -399,8 +427,11 @@ async def select_period(call: types.CallbackQuery):
     waiting[f"{call.from_user.id}_cheat"] = cheat
     waiting[f"{call.from_user.id}_days"] = days
     price = PRICES[cheat][days]
-    desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI['calendar'], '📅')} {days} дн.\n{em(EMOJI['money'], '💰')} {price}\n\n{em(EMOJI['card'], '💳')} <b>Виберіть спосіб оплати:</b>"
-    await safe_edit(call.message, desc, get_payment_kb(cheat, days))
+    desc = f"{CHEAT_NAMES[cheat]}\n\n{em(EMOJI_IDS['calendar'], '📅')} {days} дн.\n{em(EMOJI_IDS['money'], '💰')} {price}\n\n{em(EMOJI_IDS['card'], '💳')} <b>Виберіть спосіб оплати:</b>"
+    try:
+        await call.message.edit_text(desc, reply_markup=get_payment_kb(cheat, days), parse_mode="HTML")
+    except:
+        await call.message.answer(desc, reply_markup=get_payment_kb(cheat, days), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("bank_"))
@@ -411,12 +442,15 @@ async def bank_payment(call: types.CallbackQuery):
     waiting[f"{call.from_user.id}_cheat"] = cheat
     waiting[f"{call.from_user.id}_days"] = days
     price = PRICES[cheat][days]
-    text = (f"{em(EMOJI['bank'], '💳')} <b>Оплата банківською карткою</b>\n\n"
-            f"{em(EMOJI['money'], '💰')} <b>Сума:</b> {price}\n"
-            f"{em(EMOJI['bank'], '💳')} <b>Карта:</b> <code>{CARD}</code>\n"
-            f"{em(EMOJI['cancel'], '❗')} <b>Коментар:</b> За цифрові товари\n\n"
-            f"{em(EMOJI['photo'], '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await safe_edit(call.message, text, get_receipt_kb())
+    text = (f"{em(EMOJI_IDS['bank'], '💳')} <b>Оплата банківською карткою</b>\n\n"
+            f"{em(EMOJI_IDS['money'], '💰')} <b>Сума:</b> {price}\n"
+            f"{em(EMOJI_IDS['bank'], '💳')} <b>Карта:</b> <code>{CARD}</code>\n"
+            f"{em(EMOJI_IDS['cancel'], '❗')} <b>Коментар:</b> За цифрові товари\n\n"
+            f"{em(EMOJI_IDS['photo'], '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
+    try:
+        await call.message.edit_text(text, reply_markup=get_receipt_kb(), parse_mode="HTML")
+    except:
+        await call.message.answer(text, reply_markup=get_receipt_kb(), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("bank_sber_"))
@@ -427,14 +461,18 @@ async def sber_payment(call: types.CallbackQuery):
     waiting[f"{call.from_user.id}_cheat"] = cheat
     waiting[f"{call.from_user.id}_days"] = days
     price = PRICES[cheat][days]
-    text = (f"{em(EMOJI['sber'], '🏦')} <b>Оплата Сбербанк</b>\n\n"
-            f"{em(EMOJI['money'], '💰')} <b>Сума:</b> {price}\n"
-            f"{em(EMOJI['sber'], '💳')} <b>Карта:</b> <code>{CARD_SBER}</code>\n"
-            f"{em(EMOJI['name'], '👤')} <b>Отримувач:</b> {CARD_SBER_NAME}\n"
-            f"{em(EMOJI['cancel'], '❗')} <b>Коментар:</b> За цифрові товари\n\n"
-            f"{em(EMOJI['photo'], '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await safe_edit(call.message, text, get_receipt_kb())
+    text = (f"{em(EMOJI_IDS['sber'], '🏦')} <b>Оплата Сбербанк</b>\n\n"
+            f"{em(EMOJI_IDS['money'], '💰')} <b>Сума:</b> {price}\n"
+            f"{em(EMOJI_IDS['sber'], '💳')} <b>Карта:</b> <code>{CARD_SBER}</code>\n"
+            f"{em(EMOJI_IDS['name'], '👤')} <b>Отримувач:</b> {CARD_SBER_NAME}\n"
+            f"{em(EMOJI_IDS['cancel'], '❗')} <b>Коментар:</b> За цифрові товари\n\n"
+            f"{em(EMOJI_IDS['photo'], '📸')} Після оплати натисніть кнопку нижче і надішліть скріншот")
+    try:
+        await call.message.edit_text(text, reply_markup=get_receipt_kb(), parse_mode="HTML")
+    except:
+        await call.message.answer(text, reply_markup=get_receipt_kb(), parse_mode="HTML")
     await call.answer()
+
 @dp.callback_query(F.data.startswith("crypto_"))
 async def crypto_payment(call: types.CallbackQuery):
     parts = call.data.split("_")
@@ -445,15 +483,21 @@ async def crypto_payment(call: types.CallbackQuery):
     amount = round(int(price_str) / 43, 2)
     invoice = create_crypto_invoice(user_id, amount, days, cheat)
     if not invoice:
-        await safe_edit(call.message, f"{em(EMOJI['cancel'], '❌')} Ошибка создания платежа")
+        try:
+            await call.message.edit_text(f"{em(EMOJI_IDS['cancel'], '❌')} Ошибка создания платежа", parse_mode="HTML")
+        except:
+            await call.message.answer(f"{em(EMOJI_IDS['cancel'], '❌')} Ошибка создания платежа", parse_mode="HTML")
         return
     cursor.execute('INSERT INTO crypto_payments (payment_id, user_id, amount, days, product, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
                    (str(invoice["invoice_id"]), user_id, amount, days, cheat, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     conn.commit()
-    text = (f"{em(EMOJI['crypto'], '💎')} <b>Оплата через CryptoBot</b>\n\n"
-            f"{em(EMOJI['money'], '💰')} <b>Сума:</b> {amount}$\n"
-            f"{em(EMOJI['calendar'], '📅')} <b>Тариф:</b> {days} дней")
-    await safe_edit(call.message, text, get_crypto_payment_keyboard(invoice["pay_url"], invoice["invoice_id"]))
+    text = (f"{em(EMOJI_IDS['crypto'], '💎')} <b>Оплата через CryptoBot</b>\n\n"
+            f"{em(EMOJI_IDS['money'], '💰')} <b>Сума:</b> {amount}$\n"
+            f"{em(EMOJI_IDS['calendar'], '📅')} <b>Тариф:</b> {days} дней")
+    try:
+        await call.message.edit_text(text, reply_markup=get_crypto_payment_kb(invoice["pay_url"], invoice["invoice_id"]), parse_mode="HTML")
+    except:
+        await call.message.answer(text, reply_markup=get_crypto_payment_kb(invoice["pay_url"], invoice["invoice_id"]), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("check_crypto_"))
@@ -469,10 +513,13 @@ async def check_crypto(call: types.CallbackQuery):
             cursor.execute('UPDATE users SET expiry_date = ?, product_name = ? WHERE user_id = ?', (expiry, CHEAT_NAMES[product], user_id))
             cursor.execute('UPDATE crypto_payments SET status = "paid" WHERE payment_id = ?', (str(payment_id),))
             conn.commit()
-            text = (f"{em(EMOJI['success'], '✅')} <b>Оплата подтверждена!</b>\n\n"
-                    f"{em(EMOJI['calendar'], '📅')} <b>Подписка до:</b> {expiry}")
-            await safe_edit(call.message, text)
-            await bot.send_message(ADMIN_ID, f"{em(EMOJI['money'], '💰')} Новый крипто-платёж\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
+            text = (f"{em(EMOJI_IDS['success'], '✅')} <b>Оплата подтверждена!</b>\n\n"
+                    f"{em(EMOJI_IDS['calendar'], '📅')} <b>Подписка до:</b> {expiry}")
+            try:
+                await call.message.edit_text(text, parse_mode="HTML")
+            except:
+                await call.message.answer(text, parse_mode="HTML")
+            await bot.send_message(ADMIN_ID, f"{em(EMOJI_IDS['money'], '💰')} Новый крипто-платёж\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
             await call.answer("✅ Оплата подтверждена!")
     else:
         await call.answer("⏳ Платёж ещё не подтверждён", show_alert=True)
@@ -480,7 +527,10 @@ async def check_crypto(call: types.CallbackQuery):
 @dp.callback_query(F.data == "send_receipt")
 async def send_receipt(call: types.CallbackQuery):
     waiting[f"{call.from_user.id}_waiting"] = "receipt"
-    await safe_edit(call.message, f"{em(EMOJI['photo'], '📸')} Надішліть скріншот чека (одним фото)")
+    try:
+        await call.message.edit_text(f"{em(EMOJI_IDS['photo'], '📸')} Надішліть скріншот чека (одним фото)", parse_mode="HTML")
+    except:
+        await call.message.answer(f"{em(EMOJI_IDS['photo'], '📸')} Надішліть скріншот чека (одним фото)", parse_mode="HTML")
     await call.answer()
 
 @dp.message(F.photo)
@@ -492,10 +542,10 @@ async def handle_photo(message: types.Message):
         days = waiting.get(f"{user_id}_days", "0")
         photo = message.photo[-1].file_id
         
-        await bot.send_photo(ADMIN_ID, photo, caption=f"{em(EMOJI['photo'], '🔔')} Чек від {user_id}\n{em(EMOJI['product_emoji'], '📦')} Товар: {cheat}\n{em(EMOJI['time'], '⏳')} Тариф: {days} днів", reply_markup=get_admin_decision_kb(user_id), parse_mode="HTML")
-        await message.answer(f"{em(EMOJI['success'], '✅')} Чек відправлено адміністратору! Очікуйте підтвердження.", parse_mode="HTML")
+        await bot.send_photo(ADMIN_ID, photo, caption=f"{em(EMOJI_IDS['photo'], '🔔')} Чек від {user_id}\n{em(EMOJI_IDS['product_emoji'], '📦')} Товар: {cheat}\n{em(EMOJI_IDS['time'], '⏳')} Тариф: {days} днів", reply_markup=get_admin_decision_kb(user_id), parse_mode="HTML")
+        await message.answer(f"{em(EMOJI_IDS['success'], '✅')} Чек відправлено адміністратору! Очікуйте підтвердження.", parse_mode="HTML")
 
-# ========== АДМИН-ОБРАБОТЧИКИ ==========
+# ========== АДМИН-ОБРАБОТЧИКИ ДЛЯ ВЫДАЧИ КЛЮЧА ==========
 @dp.callback_query(F.data.startswith("adm_ok_"))
 async def admin_approve(call: types.CallbackQuery):
     target_id = int(call.data.split("_")[2])
@@ -507,17 +557,17 @@ async def admin_approve(call: types.CallbackQuery):
     waiting[f"admin_{call.from_user.id}_days"] = days
     waiting[f"admin_{call.from_user.id}_state"] = "waiting_file"
     
-    await call.message.answer(f"{em(EMOJI['receipt'], '📎')} Надішліть файл з читом (або текст з інструкцією)", parse_mode="HTML")
+    await call.message.answer(f"{em(EMOJI_IDS['receipt'], '📎')} Надішліть файл з читом (або текст з інструкцією)", parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("adm_no_"))
 async def admin_reject(call: types.CallbackQuery):
     target_id = int(call.data.split("_")[2])
     try:
-        await bot.send_message(target_id, f"{em(EMOJI['cancel'], '❌')} Ваша оплата була відхилена адміністратором.", parse_mode="HTML")
+        await bot.send_message(target_id, f"{em(EMOJI_IDS['cancel'], '❌')} Ваша оплата була відхилена адміністратором.", parse_mode="HTML")
     except:
         pass
-    await call.message.answer(f"{em(EMOJI['cancel'], '❌')} Відхилено", parse_mode="HTML")
+    await call.message.answer(f"{em(EMOJI_IDS['cancel'], '❌')} Відхилено", parse_mode="HTML")
     await call.answer()
 
 @dp.message(F.document | F.text)
@@ -544,7 +594,7 @@ async def admin_file_or_key(message: types.Message):
         waiting[f"admin_{user_id}_file_text"] = file_text
         waiting[f"admin_{user_id}_state"] = "waiting_key"
         
-        await message.answer(f"{em(EMOJI['key'], '🔑')} Введіть ключ активації", parse_mode="HTML")
+        await message.answer(f"{em(EMOJI_IDS['key'], '🔑')} Введіть ключ активації", parse_mode="HTML")
     
     elif state == "waiting_key" and target_id:
         key = message.text
@@ -577,29 +627,29 @@ async def admin_file_or_key(message: types.Message):
         
         conn.commit()
         
-        user_text = (f"{em(EMOJI['success'], '✅')} <b>Замовлення активовано!</b>\n\n"
-                     f"{em(EMOJI['date'], '📅')} <b>Діє до:</b> {expiry_display}\n"
-                     f"{em(EMOJI['key'], '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
-                     f"{em(EMOJI['welcome'], '💜')} Дякуємо за покупку!")
+        user_text = (f"{em(EMOJI_IDS['success'], '✅')} <b>Замовлення активовано!</b>\n\n"
+                     f"{em(EMOJI_IDS['date'], '📅')} <b>Діє до:</b> {expiry_display}\n"
+                     f"{em(EMOJI_IDS['key'], '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
+                     f"{em(EMOJI_IDS['welcome'], '💜')} Дякуємо за покупку!")
         
         try:
             if file_id:
                 await bot.send_document(target_id, file_id, caption=user_text, parse_mode="HTML")
             elif file_text:
-                await bot.send_message(target_id, user_text + f"\n\n{em(EMOJI['receipt'], '📝')} {file_text}", parse_mode="HTML")
+                await bot.send_message(target_id, user_text + f"\n\n{em(EMOJI_IDS['receipt'], '📝')} {file_text}", parse_mode="HTML")
             else:
                 await bot.send_message(target_id, user_text, parse_mode="HTML")
             
-            await message.answer(f"{em(EMOJI['success'], '✅')} <b>Ключ видано!</b>\n"
-                                f"{em(EMOJI['profile'], '👤')} Користувач: {target_id}\n"
-                                f"{em(EMOJI['product_emoji'], '📦')} Товар: {product_name}\n"
-                                f"{em(EMOJI['calendar'], '📅')} {days} дн. до {expiry_display}\n"
-                                f"{em(EMOJI['key'], '🔑')} Ключ: <code>{key}</code>", parse_mode="HTML")
+            await message.answer(f"{em(EMOJI_IDS['success'], '✅')} <b>Ключ видано!</b>\n"
+                                f"{em(EMOJI_IDS['profile'], '👤')} Користувач: {target_id}\n"
+                                f"{em(EMOJI_IDS['product_emoji'], '📦')} Товар: {product_name}\n"
+                                f"{em(EMOJI_IDS['calendar'], '📅')} {days} дн. до {expiry_display}\n"
+                                f"{em(EMOJI_IDS['key'], '🔑')} Ключ: <code>{key}</code>", parse_mode="HTML")
             
         except Exception as e:
-            await message.answer(f"{em(EMOJI['cancel'], '❌')} Помилка: {e}", parse_mode="HTML")
+            await message.answer(f"{em(EMOJI_IDS['cancel'], '❌')} Помилка: {e}", parse_mode="HTML")
         
-        # Очищаем данные админа
+        # Очищаем данные
         for k in list(waiting.keys()):
             if k.startswith(f"admin_{user_id}_"):
                 del waiting[k]
@@ -608,45 +658,10 @@ async def admin_file_or_key(message: types.Message):
         waiting.pop(f"{target_id}_waiting", None)
         
         # Возвращаем админа в главное меню
-        text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
-                f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
-                f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+        text = (f"{em(EMOJI_IDS['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+                f"{em(EMOJI_IDS['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+                f"{em(EMOJI_IDS['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
         await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(True), parse_mode="HTML")
-
-# ========== АДМИН-КОМАНДЫ ==========
-@dp.message(F.text == "Статистика")
-async def stats(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    total = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-    banned = cursor.execute('SELECT COUNT(*) FROM users WHERE banned = 1').fetchone()[0]
-    active = cursor.execute('SELECT COUNT(*) FROM users WHERE expiry_date > ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),)).fetchone()[0]
-    text = (f"{em(EMOJI['stats'], '📊')} <b>Статистика</b>\n\n"
-            f"{em(EMOJI['catalog'], '👥')} <b>Всього:</b> {total}\n"
-            f"{em(EMOJI['success'], '✅')} <b>Активних:</b> {active}\n"
-            f"{em(EMOJI['cancel'], '⛔')} <b>Забанено:</b> {banned}")
-    await message.answer(text, reply_markup=admin_panel_kb, parse_mode="HTML")
-
-@dp.message(F.text == "Розсилка")
-async def broadcast_prompt(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    waiting[f"{message.from_user.id}_broadcast"] = "waiting"
-    await message.answer(f"{em(EMOJI['broadcast'], '📢')} Надішліть повідомлення для розсилки", reply_markup=back_kb, parse_mode="HTML")
-
-@dp.message(F.text == "Забанити")
-async def ban_prompt(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    waiting[f"{message.from_user.id}_ban"] = "waiting"
-    await message.answer(f"{em(EMOJI['ban'], '⛔')} Введіть ID користувача та причину\nФормат: ID причина", parse_mode="HTML")
-
-@dp.message(F.text == "Розбанити")
-async def unban_prompt(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    waiting[f"{message.from_user.id}_unban"] = "waiting"
-    await message.answer(f"{em(EMOJI['unban'], '✅')} Введіть ID користувача", parse_mode="HTML")
 
 # ========== ОБРАБОТКА ТЕКСТОВЫХ КОМАНД АДМИНА ==========
 @dp.message()
@@ -668,11 +683,11 @@ async def handle_admin_commands(message: types.Message):
             cursor.execute('UPDATE users SET banned = 1, ban_reason = ? WHERE user_id = ?', (reason, target_id))
             conn.commit()
             try:
-                await bot.send_message(target_id, f"{em(EMOJI['ban'], '⛔️')} Вы заблокированы\nПричина: {reason}", parse_mode="HTML")
+                await bot.send_message(target_id, f"{em(EMOJI_IDS['ban'], '⛔️')} Вы заблокированы\nПричина: {reason}", parse_mode="HTML")
             except:
                 pass
-            await message.answer(f"{em(EMOJI['success'], '✅')} Пользователь {target_id} забанен", parse_mode="HTML")
-            await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
+            await message.answer(f"{em(EMOJI_IDS['success'], '✅')} Пользователь {target_id} забанен", parse_mode="HTML")
+            await message.answer("Виберіть дію:", reply_markup=admin_kb, parse_mode="HTML")
         except ValueError:
             await message.answer("❌ Неверный ID")
         return
@@ -685,11 +700,11 @@ async def handle_admin_commands(message: types.Message):
             cursor.execute('UPDATE users SET banned = 0, ban_reason = NULL WHERE user_id = ?', (target_id,))
             conn.commit()
             try:
-                await bot.send_message(target_id, f"{em(EMOJI['unban'], '✅')} Вы разблокированы", parse_mode="HTML")
+                await bot.send_message(target_id, f"{em(EMOJI_IDS['unban'], '✅')} Вы разблокированы", parse_mode="HTML")
             except:
                 pass
-            await message.answer(f"{em(EMOJI['success'], '✅')} Пользователь {target_id} разблокирован", parse_mode="HTML")
-            await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
+            await message.answer(f"{em(EMOJI_IDS['success'], '✅')} Пользователь {target_id} разблокирован", parse_mode="HTML")
+            await message.answer("Виберіть дію:", reply_markup=admin_kb, parse_mode="HTML")
         except ValueError:
             await message.answer("❌ Неверный ID")
         return
@@ -709,8 +724,8 @@ async def handle_admin_commands(message: types.Message):
             except:
                 pass
             await asyncio.sleep(0.05)
-        await message.answer(f"{em(EMOJI['success'], '✅')} Рассылка завершена! Отправлено: {sent}", parse_mode="HTML")
-        await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
+        await message.answer(f"{em(EMOJI_IDS['success'], '✅')} Рассылка завершена! Отправлено: {sent}", parse_mode="HTML")
+        await message.answer("Виберіть дію:", reply_markup=admin_kb, parse_mode="HTML")
         return
 
 @dp.message(Command("cancel"))
