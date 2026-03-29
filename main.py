@@ -7,6 +7,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.filters import Command
 import requests
 import json
+import traceback
 
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = "8655981898:AAE6-Ija80rwYN0FQoXIfcuAsNsUosAl_z0"
@@ -288,6 +289,22 @@ def check_crypto_payment(payment_id):
         print(f"Check payment error: {e}")
     return None
 
+# --- БЕЗОПАСНОЕ РЕДАКТИРОВАНИЕ СООБЩЕНИЯ ---
+async def safe_edit_text(message, text, reply_markup=None, parse_mode="HTML"):
+    try:
+        await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    except Exception as e:
+        print(f"Edit error: {e}")
+        # Если не получилось отредактировать, отправляем новое сообщение
+        await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+
+async def safe_edit_caption(message, caption, reply_markup=None, parse_mode="HTML"):
+    try:
+        await message.edit_caption(caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)
+    except Exception as e:
+        print(f"Edit caption error: {e}")
+        await message.answer(caption, reply_markup=reply_markup, parse_mode=parse_mode)
+
 # --- ОБРАБОТЧИКИ ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -454,6 +471,7 @@ async def handle_back(message: types.Message):
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_keyboard(is_admin), parse_mode="HTML")
+
 # --- ОБРАБОТКА АДМИН-КОМАНД ---
 @dp.message()
 async def handle_admin_commands(message: types.Message):
@@ -523,14 +541,17 @@ async def back_to_menu(callback: types.CallbackQuery):
     text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
-    await callback.message.delete()
+    try:
+        await callback.message.delete()
+    except:
+        pass
     await callback.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_keyboard(is_admin), parse_mode="HTML")
     await callback.answer()
 
 @dp.callback_query(F.data == "back_to_catalog")
 async def back_to_catalog(callback: types.CallbackQuery):
     text = f"{em(EMOJI['target'], '🎯')} <b>PUBG Mobile</b>\nВиберіть чит:"
-    await callback.message.edit_text(text, reply_markup=get_cheats_inline_keyboard(), parse_mode="HTML")
+    await safe_edit_text(callback.message, text, get_cheats_inline_keyboard(), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("back_to_period_"))
@@ -543,10 +564,13 @@ async def back_to_period(callback: types.CallbackQuery):
         desc += f"├ {days_text}: {price}\n"
     desc += f"\n💳 Виберіть період:"
     if photo:
-        await callback.message.delete()
+        try:
+            await callback.message.delete()
+        except:
+            pass
         await callback.message.answer_photo(photo, caption=desc, reply_markup=get_period_keyboard(cheat), parse_mode="HTML")
     else:
-        await callback.message.edit_text(desc, reply_markup=get_period_keyboard(cheat), parse_mode="HTML")
+        await safe_edit_text(callback.message, desc, get_period_keyboard(cheat), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("cheat_"))
@@ -559,10 +583,13 @@ async def show_cheat(callback: types.CallbackQuery):
         desc += f"├ {days_text}: {price}\n"
     desc += f"\n💳 Виберіть період:"
     if photo:
-        await callback.message.delete()
+        try:
+            await callback.message.delete()
+        except:
+            pass
         await callback.message.answer_photo(photo, caption=desc, reply_markup=get_period_keyboard(cheat), parse_mode="HTML")
     else:
-        await callback.message.edit_text(desc, reply_markup=get_period_keyboard(cheat), parse_mode="HTML")
+        await safe_edit_text(callback.message, desc, get_period_keyboard(cheat), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("period_"))
@@ -573,7 +600,7 @@ async def select_period(callback: types.CallbackQuery):
     user_selection[callback.from_user.id] = {"cheat": cheat, "days": days}
     price = PRICES[cheat][days]
     desc = f"{CHEAT_NAMES[cheat]}\n\n📅 {days} дн.\n💰 {price}\n\n💳 Виберіть спосіб оплати:"
-    await callback.message.edit_text(desc, reply_markup=get_payment_keyboard(cheat, days), parse_mode="HTML")
+    await safe_edit_text(callback.message, desc, get_payment_keyboard(cheat, days), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("bank_"))
@@ -585,7 +612,7 @@ async def bank_payment(callback: types.CallbackQuery):
     waiting[f"{callback.from_user.id}_days"] = days
     price = PRICES[cheat][days]
     text = (f"💳 Оплата банківською карткою\n\n💰 Сума: {price}\n💳 Карта: <code>{CARD}</code>\n❗ Коментар: За цифрові товари\n\n📸 Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await callback.message.edit_text(text, reply_markup=get_receipt_keyboard(), parse_mode="HTML")
+    await safe_edit_text(callback.message, text, get_receipt_keyboard(), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("bank_sber_"))
@@ -597,7 +624,7 @@ async def sber_payment(callback: types.CallbackQuery):
     waiting[f"{callback.from_user.id}_days"] = days
     price = PRICES[cheat][days]
     text = (f"🏦 Оплата Сбербанк\n\n💰 Сума: {price}\n💳 Карта: <code>{CARD_SBER}</code>\n👤 Отримувач: {CARD_SBER_NAME}\n❗ Коментар: За цифрові товари\n\n📸 Після оплати натисніть кнопку нижче і надішліть скріншот")
-    await callback.message.edit_text(text, reply_markup=get_receipt_keyboard(), parse_mode="HTML")
+    await safe_edit_text(callback.message, text, get_receipt_keyboard(), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("crypto_"))
@@ -610,13 +637,13 @@ async def crypto_payment(callback: types.CallbackQuery):
     amount = round(int(price_str) / 43, 2)
     invoice = create_crypto_invoice(user_id, amount, days, cheat)
     if not invoice:
-        await callback.message.edit_text("❌ Ошибка создания платежа")
+        await safe_edit_text(callback.message, "❌ Ошибка создания платежа", None, "HTML")
         return
     cursor.execute('INSERT INTO crypto_payments (payment_id, user_id, amount, days, product, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
                    (str(invoice["invoice_id"]), user_id, amount, days, cheat, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     conn.commit()
     text = (f"💎 Оплата через CryptoBot\n\n💰 Сума: {amount}$\n📅 Тариф: {days} дней")
-    await callback.message.edit_text(text, reply_markup=get_crypto_payment_keyboard(invoice["pay_url"], invoice["invoice_id"]), parse_mode="HTML")
+    await safe_edit_text(callback.message, text, get_crypto_payment_keyboard(invoice["pay_url"], invoice["invoice_id"]), "HTML")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("check_crypto_"))
@@ -633,7 +660,7 @@ async def check_crypto(callback: types.CallbackQuery):
             cursor.execute('UPDATE crypto_payments SET status = "paid" WHERE payment_id = ?', (str(payment_id),))
             conn.commit()
             text = (f"✅ Оплата подтверждена!\n\n📅 Подписка до: {expiry}")
-            await callback.message.edit_text(text, parse_mode="HTML")
+            await safe_edit_text(callback.message, text, None, "HTML")
             await bot.send_message(ADMIN_ID, f"💰 Новый крипто-платёж\n👤 {user_id}\n📅 {days} дней\n💎 {CHEAT_NAMES[product]}")
             await callback.answer("✅ Оплата подтверждена!")
     else:
@@ -642,7 +669,7 @@ async def check_crypto(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "send_receipt")
 async def send_receipt(callback: types.CallbackQuery):
     waiting[f"{callback.from_user.id}_waiting"] = "receipt"
-    await callback.message.edit_text("📸 Надішліть скріншот чека (одним фото)")
+    await safe_edit_text(callback.message, "📸 Надішліть скріншот чека (одним фото)", None, "HTML")
     await callback.answer()
 
 @dp.message(F.photo)
@@ -752,4 +779,4 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())
