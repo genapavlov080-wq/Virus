@@ -96,6 +96,7 @@ cursor.execute('''
         expiry_date TEXT,
         product_name TEXT,
         banned INTEGER DEFAULT 0,
+        ban_reason TEXT,
         last_key TEXT
     )
 ''')
@@ -323,6 +324,7 @@ async def back(message: types.Message):
     waiting.pop(f"{user_id}_broadcast", None)
     waiting.pop(f"{user_id}_ban", None)
     waiting.pop(f"{user_id}_unban", None)
+    waiting.pop(f"admin_{user_id}_state", None)
     
     is_admin = (user_id == ADMIN_ID)
     await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
@@ -596,19 +598,20 @@ async def admin_file_or_key(message: types.Message):
         waiting.pop(f"{target_id}_days", None)
         waiting.pop(f"{target_id}_waiting", None)
         
-        # Возвращаем админа в главное меню с кнопкой админ-панели
+        # Возвращаем админа в главное меню
         text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
                 f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
                 f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
         await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(True), parse_mode="HTML")
 
+# ========== АДМИН-КОМАНДЫ (СТАТИСТИКА, РОЗСЫЛКА, БАН, РАЗБАН) ==========
 @dp.message(F.text == "Статистика")
 async def stats(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         return
     total = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-    active = cursor.execute('SELECT COUNT(*) FROM users WHERE expiry_date > ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),)).fetchone()[0]
     banned = cursor.execute('SELECT COUNT(*) FROM users WHERE banned = 1').fetchone()[0]
+    active = cursor.execute('SELECT COUNT(*) FROM users WHERE expiry_date > ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),)).fetchone()[0]
     text = (f"{em(EMOJI['stats'], '📊')} <b>Статистика</b>\n\n"
             f"{em(EMOJI['catalog'], '👥')} <b>Всього:</b> {total}\n"
             f"{em(EMOJI['success'], '✅')} <b>Активних:</b> {active}\n"
@@ -627,7 +630,7 @@ async def ban_prompt(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         return
     waiting[f"{message.from_user.id}_ban"] = "waiting"
-    await message.answer(f"{em(EMOJI['ban'], '⛔')} Введіть ID користувача", parse_mode="HTML")
+    await message.answer(f"{em(EMOJI['ban'], '⛔')} Введіть ID користувача та причину\nФормат: ID причина", parse_mode="HTML")
 
 @dp.message(F.text == "Розбанити")
 async def unban_prompt(message: types.Message):
@@ -636,53 +639,83 @@ async def unban_prompt(message: types.Message):
     waiting[f"{message.from_user.id}_unban"] = "waiting"
     await message.answer(f"{em(EMOJI['unban'], '✅')} Введіть ID користувача", parse_mode="HTML")
 
+# ========== ОБРАБОТКА ТЕКСТОВЫХ КОМАНД АДМИНА ==========
 @dp.message()
-async def admin_commands(message: types.Message):
+async def handle_admin_commands(message: types.Message):
     user_id = message.from_user.id
     if user_id != ADMIN_ID:
         return
     
+    # Бан
     if waiting.get(f"{user_id}_ban") == "waiting":
         waiting[f"{user_id}_ban"] = None
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.answer("❌ Формат: ID причина", parse_mode="HTML")
+            return
         try:
-            target_id = int(message.text)
-            cursor.execute('UPDATE users SET banned = 1 WHERE user_id = ?', (target_id,))
+            target_id = int(parts[0])
+            reason = parts[1] if len(parts) > 1 else "Нарушение"
+            cursor.execute('UPDATE users SET banned = 1, ban_reason = ? WHERE user_id = ?', (reason, target_id))
             conn.commit()
-            await message.answer(f"{em(EMOJI['success'], '✅')} Забанено {target_id}", parse_mode="HTML")
-            # Возвращаем в админ-панель
+            try:
+                await bot.send_message(target_id, f"{em(EMOJI['ban'], '⛔️')} Вы заблокированы\nПричина: {reason}", parse_mode="HTML")
+            except:
+                pass
+            await message.answer(f"{em(EMOJI['success'], '✅')} Пользователь {target_id} забанен", parse_mode="HTML")
             await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
-        except:
-            await message.answer("❌ Неверный ID")
+        except ValueError:
+            await message.answer("❌ Неверный ID", parse_mode="HTML")
         return
     
+    # Разбан
     if waiting.get(f"{user_id}_unban") == "waiting":
         waiting[f"{user_id}_unban"] = None
         try:
             target_id = int(message.text)
-            cursor.execute('UPDATE users SET banned = 0 WHERE user_id = ?', (target_id,))
+            cursor.execute('UPDATE users SET banned = 0, ban_reason = NULL WHERE user_id = ?', (target_id,))
             conn.commit()
-            await message.answer(f"{em(EMOJI['success'], '✅')} Розбанено {target_id}", parse_mode="HTML")
-            # Возвращаем в админ-панель
+            try:
+                await bot.send_message(target_id, f"{em(EMOJI['unban'], '✅')} Вы разблокированы", parse_mode="HTML")
+            except:
+                pass
+            await message.answer(f"{em(EMOJI['success'], '✅')} Пользователь {target_id} разблокирован", parse_mode="HTML")
             await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
-        except:
-            await message.answer("❌ Неверный ID")
+        except ValueError:
+            await message.answer("❌ Неверный ID", parse_mode="HTML")
         return
     
+    # Рассылка
     if waiting.get(f"{user_id}_broadcast") == "waiting":
         waiting[f"{user_id}_broadcast"] = None
         users = cursor.execute('SELECT user_id FROM users WHERE banned = 0').fetchall()
+        if not users:
+            await message.answer("📭 Нет пользователей")
+            return
         sent = 0
         for u in users:
             try:
-                await bot.send_message(u[0], message.text, parse_mode="HTML")
+                await bot.send_message(u['user_id'], message.text, parse_mode="HTML")
                 sent += 1
             except:
                 pass
             await asyncio.sleep(0.05)
-        await message.answer(f"{em(EMOJI['success'], '✅')} Розсилка завершена! Відправлено: {sent}", parse_mode="HTML")
-        # Возвращаем в админ-панель
+        await message.answer(f"{em(EMOJI['success'], '✅')} Рассылка завершена! Отправлено: {sent}", parse_mode="HTML")
         await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
         return
+
+@dp.message(Command("cancel"))
+async def cancel_operation(message: types.Message):
+    user_id = message.from_user.id
+    waiting.pop(f"{user_id}_waiting", None)
+    waiting.pop(f"{user_id}_broadcast", None)
+    waiting.pop(f"{user_id}_ban", None)
+    waiting.pop(f"{user_id}_unban", None)
+    if waiting.get(f"admin_{user_id}_state"):
+        for k in list(waiting.keys()):
+            if k.startswith(f"admin_{user_id}_"):
+                del waiting[k]
+    await message.answer("✅ Операцію скасовано")
 
 # ========== ЗАПУСК ==========
 async def main():
