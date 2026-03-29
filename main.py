@@ -125,12 +125,6 @@ async def safe_edit(message, text, reply_markup=None):
     except:
         await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
 
-async def safe_edit_caption(message, caption, reply_markup=None):
-    try:
-        await message.edit_caption(caption=caption, reply_markup=reply_markup, parse_mode="HTML")
-    except:
-        await message.answer(caption, reply_markup=reply_markup, parse_mode="HTML")
-
 # ========== REPLY КЛАВИАТУРЫ ==========
 main_kb = ReplyKeyboardMarkup(
     keyboard=[
@@ -484,34 +478,114 @@ async def handle_photo(message: types.Message):
 
 # ========== АДМИН-ОБРАБОТЧИКИ ==========
 @dp.callback_query(F.data.startswith("adm_ok_"))
-async def admin_ok(call: types.CallbackQuery):
+async def admin_approve(call: types.CallbackQuery):
     target_id = int(call.data.split("_")[2])
-    cheat = waiting.get(f"{target_id}_cheat", "Unknown")
-    days = int(waiting.get(f"{target_id}_days", "0"))
+    product = waiting.get(f"{target_id}_cheat", "Unknown")
+    days = waiting.get(f"{target_id}_days", "0")
     
-    expiry = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
-    expiry_display = datetime.strptime(expiry, '%Y-%m-%d %H:%M:%S').strftime('%d.%m.%Y %H:%M')
-    key = f"KEY_{target_id}_{int(datetime.now().timestamp())}"
+    waiting[f"admin_{call.from_user.id}_target"] = target_id
+    waiting[f"admin_{call.from_user.id}_product"] = product
+    waiting[f"admin_{call.from_user.id}_days"] = days
+    waiting[f"admin_{call.from_user.id}_state"] = "waiting_file"
     
-    cursor.execute('UPDATE users SET expiry_date = ?, product_name = ?, last_key = ? WHERE user_id = ?', 
-                   (expiry, CHEAT_NAMES.get(cheat, cheat), key, target_id))
-    conn.commit()
-    
-    user_text = (f"{em(EMOJI['success'], '✅')} <b>Замовлення активовано!</b>\n\n"
-                 f"{em(EMOJI['date'], '📅')} <b>Діє до:</b> {expiry_display}\n"
-                 f"{em(EMOJI['key'], '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
-                 f"{em(EMOJI['welcome'], '💜')} Дякуємо за покупку!")
-    
-    await bot.send_message(target_id, user_text, parse_mode="HTML")
-    await call.message.answer(f"{em(EMOJI['success'], '✅')} Ключ видано користувачу {target_id}", parse_mode="HTML")
+    await call.message.answer(f"{em(EMOJI['receipt'], '📎')} Надішліть файл з читом (або текст з інструкцією)", parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("adm_no_"))
-async def admin_no(call: types.CallbackQuery):
+async def admin_reject(call: types.CallbackQuery):
     target_id = int(call.data.split("_")[2])
-    await bot.send_message(target_id, f"{em(EMOJI['cancel'], '❌')} Ваша оплата відхилена", parse_mode="HTML")
-    await call.message.answer(f"{em(EMOJI['cancel'], '❌')} Відхилено {target_id}", parse_mode="HTML")
+    try:
+        await bot.send_message(target_id, f"{em(EMOJI['cancel'], '❌')} Ваша оплата була відхилена адміністратором.", parse_mode="HTML")
+    except:
+        pass
+    await call.message.answer(f"{em(EMOJI['cancel'], '❌')} Відхилено", parse_mode="HTML")
     await call.answer()
+
+@dp.message(F.document | F.text)
+async def admin_file_or_key(message: types.Message):
+    user_id = message.from_user.id
+    if user_id != ADMIN_ID:
+        return
+    
+    state = waiting.get(f"admin_{user_id}_state")
+    target_id = waiting.get(f"admin_{user_id}_target")
+    
+    if state == "waiting_file" and target_id:
+        file_id = None
+        file_text = None
+        
+        if message.document:
+            file_id = message.document.file_id
+        elif message.photo:
+            file_id = message.photo[-1].file_id
+        else:
+            file_text = message.text
+        
+        waiting[f"admin_{user_id}_file"] = file_id
+        waiting[f"admin_{user_id}_file_text"] = file_text
+        waiting[f"admin_{user_id}_state"] = "waiting_key"
+        
+        await message.answer(f"{em(EMOJI['key'], '🔑')} Введіть ключ активації", parse_mode="HTML")
+    
+    elif state == "waiting_key" and target_id:
+        key = message.text
+        product = waiting.get(f"admin_{user_id}_product", "Unknown")
+        days = int(waiting.get(f"admin_{user_id}_days", "0"))
+        file_id = waiting.get(f"admin_{user_id}_file")
+        file_text = waiting.get(f"admin_{user_id}_file_text")
+        
+        expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+        product_name = CHEAT_NAMES.get(product, "Zroglik")
+        expiry_display = datetime.strptime(expiry_date, '%Y-%m-%d %H:%M:%S').strftime('%d.%m.%Y %H:%M')
+        
+        existing = cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (target_id,)).fetchone()
+        
+        if existing:
+            cursor.execute('''
+                UPDATE users SET 
+                    expiry_date = ?, 
+                    product_name = ?, 
+                    last_key = ?,
+                    banned = 0,
+                    ban_reason = NULL
+                WHERE user_id = ?
+            ''', (expiry_date, product_name, key, target_id))
+        else:
+            cursor.execute('''
+                INSERT INTO users (user_id, expiry_date, product_name, subscribed_at, banned, last_key) 
+                VALUES (?, ?, ?, ?, 0, ?)
+            ''', (target_id, expiry_date, product_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), key))
+        
+        conn.commit()
+        
+        user_text = (f"{em(EMOJI['success'], '✅')} <b>Замовлення активовано!</b>\n\n"
+                     f"{em(EMOJI['date'], '📅')} <b>Діє до:</b> {expiry_display}\n"
+                     f"{em(EMOJI['key'], '🔑')} <b>Ключ:</b> <code>{key}</code>\n\n"
+                     f"{em(EMOJI['welcome'], '💜')} Дякуємо за покупку!")
+        
+        try:
+            if file_id:
+                await bot.send_document(target_id, file_id, caption=user_text, parse_mode="HTML")
+            elif file_text:
+                await bot.send_message(target_id, user_text + f"\n\n{em(EMOJI['receipt'], '📝')} {file_text}", parse_mode="HTML")
+            else:
+                await bot.send_message(target_id, user_text, parse_mode="HTML")
+            
+            await message.answer(f"{em(EMOJI['success'], '✅')} <b>Ключ видано!</b>\n"
+                                f"{em(EMOJI['profile'], '👤')} Користувач: {target_id}\n"
+                                f"{em(EMOJI['product_emoji'], '📦')} Товар: {product_name}\n"
+                                f"{em(EMOJI['calendar'], '📅')} {days} дн. до {expiry_display}\n"
+                                f"{em(EMOJI['key'], '🔑')} Ключ: <code>{key}</code>", parse_mode="HTML")
+            
+        except Exception as e:
+            await message.answer(f"{em(EMOJI['cancel'], '❌')} Помилка: {e}", parse_mode="HTML")
+        
+        for k in list(waiting.keys()):
+            if k.startswith(f"admin_{user_id}_"):
+                del waiting[k]
+        waiting.pop(f"{target_id}_cheat", None)
+        waiting.pop(f"{target_id}_days", None)
+        waiting.pop(f"{target_id}_waiting", None)
 
 @dp.message(F.text == "Статистика")
 async def stats(message: types.Message):
