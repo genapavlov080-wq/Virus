@@ -13,7 +13,7 @@ CARD = "5167803275649049"
 CARD_SBER = "2202206340487136"
 CARD_SBER_NAME = "Вазген Б."
 
-# Premium эмодзи ID
+# Premium эмодзи ID (ВСЕ)
 EMOJI = {
     "catalog": "5156877291397055163",
     "profile": "5904630315946611415",
@@ -195,16 +195,7 @@ def get_crypto_payment_kb(pay_url, invoice_id):
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
-def get_subscribe_kb():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="ПОДПИСАТЬСЯ", url="https://t.me/+P2DK2IpHKBdiZGUy", icon_custom_emoji_id=EMOJI["catalog"])],
-        [InlineKeyboardButton(text="ПРОВЕРИТИ", callback_data="check_sub", icon_custom_emoji_id=EMOJI["check"])]
-    ])
-
 # ========== ФУНКЦИИ ==========
-def check_subscription(user_id):
-    return True
-
 def create_crypto_invoice(user_id, amount, days, product):
     url = "https://pay.crypt.bot/api/createInvoice"
     headers = {"Crypto-Pay-API-Token": "466345:AADMm3mzlC6KGJmwt3r771bUPIx40CMEKhQ"}
@@ -585,4 +576,4 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main()
