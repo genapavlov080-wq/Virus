@@ -126,16 +126,17 @@ async def safe_edit(message, text, reply_markup=None):
         await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
 
 # ========== REPLY КЛАВИАТУРЫ ==========
-main_kb = ReplyKeyboardMarkup(
-    keyboard=[
+def get_main_kb(is_admin=False):
+    kb = [
         [KeyboardButton(text="Каталог", icon_custom_emoji_id=EMOJI["catalog"])],
         [KeyboardButton(text="Мій кабінет", icon_custom_emoji_id=EMOJI["profile"])],
         [KeyboardButton(text="Відгуки", icon_custom_emoji_id=EMOJI["reviews"]), KeyboardButton(text="Техпідтримка", icon_custom_emoji_id=EMOJI["support"])]
-    ],
-    resize_keyboard=True
-)
+    ]
+    if is_admin:
+        kb.append([KeyboardButton(text="Адмін панель", icon_custom_emoji_id=EMOJI["admin"])])
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-admin_kb = ReplyKeyboardMarkup(
+admin_panel_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="Статистика", icon_custom_emoji_id=EMOJI["stats"])],
         [KeyboardButton(text="Розсилка", icon_custom_emoji_id=EMOJI["broadcast"])],
@@ -250,10 +251,8 @@ async def cmd_start(message: types.Message):
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
-    if user_id == ADMIN_ID:
-        await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=admin_kb, parse_mode="HTML")
-    else:
-        await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=main_kb, parse_mode="HTML")
+    is_admin = (user_id == ADMIN_ID)
+    await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
 
 @dp.message(F.text == "Каталог")
 async def catalog(message: types.Message):
@@ -305,6 +304,14 @@ async def support(message: types.Message):
     text = f"{em(EMOJI['support'], '🎮')} <b>Технічна підтримка</b>\n\nЗв'яжіться з нами: @ZrogIikCheat"
     await message.answer(text, reply_markup=back_kb, parse_mode="HTML")
 
+@dp.message(F.text == "Адмін панель")
+async def admin_panel(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("⛔ У вас немає доступу до адмін-панелі")
+        return
+    text = f"{em(EMOJI['admin'], '👑')} <b>АДМІН ПАНЕЛЬ</b>\n\nВиберіть дію:"
+    await message.answer(text, reply_markup=admin_panel_kb, parse_mode="HTML")
+
 @dp.message(F.text == "Назад")
 async def back(message: types.Message):
     user_id = message.from_user.id
@@ -312,10 +319,13 @@ async def back(message: types.Message):
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     
-    if user_id == ADMIN_ID:
-        await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=admin_kb, parse_mode="HTML")
-    else:
-        await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=main_kb, parse_mode="HTML")
+    # Очищаем ожидания
+    waiting.pop(f"{user_id}_broadcast", None)
+    waiting.pop(f"{user_id}_ban", None)
+    waiting.pop(f"{user_id}_unban", None)
+    
+    is_admin = (user_id == ADMIN_ID)
+    await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
 
 # ========== INLINE ОБРАБОТЧИКИ ==========
 @dp.callback_query(F.data == "back_to_menu")
@@ -325,10 +335,8 @@ async def back_to_menu(call: types.CallbackQuery):
             f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
             f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
     await call.message.delete()
-    if user_id == ADMIN_ID:
-        await call.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=admin_kb, parse_mode="HTML")
-    else:
-        await call.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=main_kb, parse_mode="HTML")
+    is_admin = (user_id == ADMIN_ID)
+    await call.message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(is_admin), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data == "back_to_catalog")
@@ -580,12 +588,19 @@ async def admin_file_or_key(message: types.Message):
         except Exception as e:
             await message.answer(f"{em(EMOJI['cancel'], '❌')} Помилка: {e}", parse_mode="HTML")
         
+        # Очищаем данные админа
         for k in list(waiting.keys()):
             if k.startswith(f"admin_{user_id}_"):
                 del waiting[k]
         waiting.pop(f"{target_id}_cheat", None)
         waiting.pop(f"{target_id}_days", None)
         waiting.pop(f"{target_id}_waiting", None)
+        
+        # Возвращаем админа в главное меню с кнопкой админ-панели
+        text = (f"{em(EMOJI['fire'], '🔥')} <b>ZROGLIK KEYS</b>\n\n"
+                f"{em(EMOJI['welcome'], '👋')} Ласкаво просимо до ZroglikShop!\n"
+                f"{em(EMOJI['target'], '🎯')} Тут ти можеш купити чити для PUBG Mobile")
+        await message.answer_photo(MAIN_PHOTO, caption=text, reply_markup=get_main_kb(True), parse_mode="HTML")
 
 @dp.message(F.text == "Статистика")
 async def stats(message: types.Message):
@@ -598,7 +613,7 @@ async def stats(message: types.Message):
             f"{em(EMOJI['catalog'], '👥')} <b>Всього:</b> {total}\n"
             f"{em(EMOJI['success'], '✅')} <b>Активних:</b> {active}\n"
             f"{em(EMOJI['cancel'], '⛔')} <b>Забанено:</b> {banned}")
-    await message.answer(text, reply_markup=admin_kb, parse_mode="HTML")
+    await message.answer(text, reply_markup=admin_panel_kb, parse_mode="HTML")
 
 @dp.message(F.text == "Розсилка")
 async def broadcast_prompt(message: types.Message):
@@ -634,6 +649,8 @@ async def admin_commands(message: types.Message):
             cursor.execute('UPDATE users SET banned = 1 WHERE user_id = ?', (target_id,))
             conn.commit()
             await message.answer(f"{em(EMOJI['success'], '✅')} Забанено {target_id}", parse_mode="HTML")
+            # Возвращаем в админ-панель
+            await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
         except:
             await message.answer("❌ Неверный ID")
         return
@@ -645,6 +662,8 @@ async def admin_commands(message: types.Message):
             cursor.execute('UPDATE users SET banned = 0 WHERE user_id = ?', (target_id,))
             conn.commit()
             await message.answer(f"{em(EMOJI['success'], '✅')} Розбанено {target_id}", parse_mode="HTML")
+            # Возвращаем в админ-панель
+            await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
         except:
             await message.answer("❌ Неверный ID")
         return
@@ -661,6 +680,8 @@ async def admin_commands(message: types.Message):
                 pass
             await asyncio.sleep(0.05)
         await message.answer(f"{em(EMOJI['success'], '✅')} Розсилка завершена! Відправлено: {sent}", parse_mode="HTML")
+        # Возвращаем в админ-панель
+        await message.answer("Виберіть дію:", reply_markup=admin_panel_kb, parse_mode="HTML")
         return
 
 # ========== ЗАПУСК ==========
