@@ -17,19 +17,19 @@ from aiogram.types import (
 
 # ========== КОНФИГ ==========
 BOT_TOKEN = "8276230046:AAGI7gkFHbI80AVgP0-g55qBm7SBCw00Duw"
-ADMIN_ID = 1471307057  # Твой ID
-YOUR_USERNAME = "IllyaGarant"  # Твой юзернейм
+ADMIN_ID = 1471307057
+YOUR_USERNAME = "IllyaGarant"
 
-# ========== TG PREMIUM ЭМОДЗИ ==========
-# ID эмодзи (можно менять)
-EMOJI_CROWN = "5217822164362739968"      # 👑
-EMOJI_THUMBS_UP = "5285430309720966085"  # 👍
-EMOJI_DANGER = "5310169226856644648"     # ⚠️
-EMOJI_SUCCESS = "5310076249404621168"    # ✅
-EMOJI_STAR = "5285032475490273112"       # ⭐
+# ========== ID TG PREMIUM ЭМОДЗИ (из твоего тутора) ==========
+EMOJI_LIKE = "5285430309720966085"      # 👍
+EMOJI_DANGER = "5310169226856644648"    # опасность
+EMOJI_SUCCESS = "5310076249404621168"   # успех
+EMOJI_PRIMARY = "5285430309720966085"   # основной
+EMOJI_CROWN = "5217822164362739968"     # 👑
+EMOJI_STAR = "5285032475490273112"      # ⭐
 
 def tg_emoji(emoji_id: str, fallback: str = "•") -> str:
-    """Возвращает HTML-тег для TG Premium эмодзи"""
+    """Формирует HTML-тег для TG Premium эмодзи строго по тутору"""
     return f'<tg-emoji emoji-id="{emoji_id}">{fallback}</tg-emoji>'
 
 # ========== ИНИЦИАЛИЗАЦИЯ ==========
@@ -75,34 +75,12 @@ def init_db():
         )
     ''')
     
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            from_id TEXT,
-            to_id TEXT,
-            reason TEXT,
-            status TEXT,
-            created_at TEXT
-        )
-    ''')
-    
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS reputation (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            from_id TEXT,
-            to_id TEXT,
-            rating INTEGER,
-            created_at TEXT
-        )
-    ''')
-    
-    # Добавляем админа (тебя)
     cur.execute("SELECT * FROM users WHERE user_id = ?", (str(ADMIN_ID),))
     if not cur.fetchone():
         cur.execute('''
             INSERT INTO users (user_id, username, status, is_admin, base_date, reg_date, trust_score, deposit, fee)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (str(ADMIN_ID), YOUR_USERNAME, "garant", 1, 
+        ''', (str(ADMIN_ID), YOUR_USERNAME, "garant", 1,
               datetime.now().strftime("%d.%m.%Y %H:%M"),
               datetime.now().strftime("%d %B %Y"), 32.5, 13, 2))
     
@@ -110,7 +88,6 @@ def init_db():
     conn.close()
 
 def get_user_by_username(username: str) -> Optional[Dict]:
-    """Поиск пользователя по username (без @)"""
     username = username.lower().replace("@", "")
     conn = sqlite3.connect("spectra.db")
     cur = conn.cursor()
@@ -143,47 +120,45 @@ def create_user(user_id: str, username: str = None, full_name: str = None):
     review_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=7))
     base_date = datetime.now().strftime("%d.%m.%Y %H:%M")
     cur.execute('''
-        INSERT INTO users (user_id, username, full_name, trust_score, review_code, status, 
+        INSERT INTO users (user_id, username, full_name, trust_score, review_code, status,
                           deposit, reg_date, base_date, is_admin, plus_count, minus_count, fee)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (user_id, username, full_name, 0, f"R-{review_code}", "user", 0, 
+    ''', (user_id, username, full_name, 0, f"R-{review_code}", "user", 0,
           datetime.now().strftime("%d %B %Y"), base_date, 0, 0, 0, 0))
     conn.commit()
     conn.close()
 
 def add_garant(user_id: str, username: str, deposit: float, fee: int = 2):
-    """Добавить рученика с депозитом"""
     conn = sqlite3.connect("spectra.db")
     cur = conn.cursor()
     review_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=7))
     base_date = datetime.now().strftime("%d.%m.%Y %H:%M")
     cur.execute('''
-        INSERT OR REPLACE INTO users (user_id, username, status, deposit, responsible_id, 
+        INSERT OR REPLACE INTO users (user_id, username, status, deposit, responsible_id,
                                       trust_score, review_code, base_date, reg_date, fee, is_admin)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (user_id, username, "garant", deposit, str(ADMIN_ID), 32.5, f"R-{review_code}", 
+    ''', (user_id, username, "garant", deposit, str(ADMIN_ID), 32.5, f"R-{review_code}",
           base_date, datetime.now().strftime("%d %B %Y"), fee, 0))
     conn.commit()
     conn.close()
 
 def add_scammer(user_id: str, username: str):
-    """Добавить скамера"""
     conn = sqlite3.connect("spectra.db")
     cur = conn.cursor()
     base_date = datetime.now().strftime("%d.%m.%Y %H:%M")
     cur.execute('''
-        INSERT OR REPLACE INTO users (user_id, username, status, trust_score, base_date, 
+        INSERT OR REPLACE INTO users (user_id, username, status, trust_score, base_date,
                                       plus_count, minus_count, deposit, fee)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (user_id, username, "scammer", 0, base_date, 0, 0, 0, 0))
     conn.commit()
     conn.close()
 
-# ========== КЛАВИАТУРЫ С TG PREMIUM ЭМОДЗИ ==========
+# ========== КЛАВИАТУРЫ С TG PREMIUM ЭМОДЗИ (строго по тутору) ==========
 def main_menu_keyboard(is_admin: bool = False):
     buttons = [
         [KeyboardButton(text=f"{tg_emoji(EMOJI_STAR, '🔎')} Поиск")],
-        [KeyboardButton(text=f"{tg_emoji(EMOJI_THUMBS_UP, '👤')} Профиль")],
+        [KeyboardButton(text=f"{tg_emoji(EMOJI_LIKE, '👤')} Профиль")],
         [KeyboardButton(text=f"{tg_emoji(EMOJI_CROWN, '🛡')} Сделка")],
         [KeyboardButton(text="📢 Канал")]
     ]
@@ -191,19 +166,33 @@ def main_menu_keyboard(is_admin: bool = False):
         buttons.append([KeyboardButton(text=f"{tg_emoji(EMOJI_CROWN, '👑')} Панель руч.")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
-# Инлайн кнопки с эмодзи
+# Инлайн клавиатура с эмодзи в кнопках (как в туторе)
 search_numbers_kb = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="1", callback_data="search_num_1"),
-     InlineKeyboardButton(text="2", callback_data="search_num_2"),
-     InlineKeyboardButton(text="3", callback_data="search_num_3")],
-    [InlineKeyboardButton(text="4", callback_data="search_num_4"),
-     InlineKeyboardButton(text="5", callback_data="search_num_5"),
-     InlineKeyboardButton(text="6", callback_data="search_num_6")],
-    [InlineKeyboardButton(text="7", callback_data="search_num_7")],
-    [InlineKeyboardButton(text=f"{tg_emoji(EMOJI_SUCCESS, '✅')} Выбрать пользователя", 
-                          callback_data="select_user")],
-    [InlineKeyboardButton(text=f"{tg_emoji(EMOJI_DANGER, '◀️')} Назад", 
-                          callback_data="back_to_menu")]
+    [
+        InlineKeyboardButton(text="1", callback_data="search_num_1"),
+        InlineKeyboardButton(text="2", callback_data="search_num_2"),
+        InlineKeyboardButton(text="3", callback_data="search_num_3")
+    ],
+    [
+        InlineKeyboardButton(text="4", callback_data="search_num_4"),
+        InlineKeyboardButton(text="5", callback_data="search_num_5"),
+        InlineKeyboardButton(text="6", callback_data="search_num_6")
+    ],
+    [
+        InlineKeyboardButton(text="7", callback_data="search_num_7")
+    ],
+    [
+        InlineKeyboardButton(
+            text=f"{tg_emoji(EMOJI_SUCCESS, '✅')} Выбрать пользователя",
+            callback_data="select_user"
+        )
+    ],
+    [
+        InlineKeyboardButton(
+            text=f"{tg_emoji(EMOJI_DANGER, '◀️')} Назад",
+            callback_data="back_to_menu"
+        )
+    ]
 ])
 
 # ========== СОСТОЯНИЯ ==========
@@ -219,7 +208,6 @@ class AdminStates(StatesGroup):
     waiting_scammer_username = State()
 
 # ========== ОБРАБОТЧИКИ ==========
-
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     user_id = str(message.from_user.id)
@@ -250,7 +238,7 @@ async def search_menu(message: Message):
         f"#️⃣ 123456789 — числовой ID\n"
         f"🌐 t.me/username — ссылка на профиль\n"
         f"💬 Пересланное сообщение\n"
-        f"{tg_emoji(EMOJI_THUMBS_UP, '✋')} Кнопка «Выбрать» ниже",
+        f"{tg_emoji(EMOJI_LIKE, '✋')} Кнопка «Выбрать» ниже",
         reply_markup=search_numbers_kb
     )
 
@@ -263,10 +251,12 @@ async def profile(message: Message):
         await message.answer("❌ Ошибка. Напишите /start")
         return
     
-    status_map = {"user": f"{tg_emoji(EMOJI_THUMBS_UP, '👤')} Пользователь", 
-                  "garant": f"{tg_emoji(EMOJI_CROWN, '✋')} Рученик", 
-                  "scammer": f"{tg_emoji(EMOJI_DANGER, '🔴')} Скамер"}
-    status_text = status_map.get(user["status"], f"{tg_emoji(EMOJI_THUMBS_UP, '👤')} Пользователь")
+    status_map = {
+        "user": f"{tg_emoji(EMOJI_LIKE, '👤')} Пользователь",
+        "garant": f"{tg_emoji(EMOJI_CROWN, '✋')} Рученик",
+        "scammer": f"{tg_emoji(EMOJI_DANGER, '🔴')} Скамер"
+    }
+    status_text = status_map.get(user["status"], f"{tg_emoji(EMOJI_LIKE, '👤')} Пользователь")
     
     await message.answer(
         f"{tg_emoji(EMOJI_CROWN, '👤')} <b>Ваш профиль</b>\n\n"
@@ -310,12 +300,17 @@ async def deal_step_amount(message: Message, state: FSMContext):
         amount = float(message.text.replace(",", "."))
         await state.update_data(amount=amount)
         
+        # Клавиатура с эмодзи как в туторе
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="RUB", callback_data="cur_RUB"),
-             InlineKeyboardButton(text="USD", callback_data="cur_USD"),
-             InlineKeyboardButton(text="USDT", callback_data="cur_USDT")],
-            [InlineKeyboardButton(text="TON", callback_data="cur_TON"),
-             InlineKeyboardButton(text="UAH", callback_data="cur_UAH")]
+            [
+                InlineKeyboardButton(text="RUB", callback_data="cur_RUB"),
+                InlineKeyboardButton(text="USD", callback_data="cur_USD"),
+                InlineKeyboardButton(text="USDT", callback_data="cur_USDT")
+            ],
+            [
+                InlineKeyboardButton(text="TON", callback_data="cur_TON"),
+                InlineKeyboardButton(text="UAH", callback_data="cur_UAH")
+            ]
         ])
         
         data = await state.get_data()
@@ -347,11 +342,14 @@ async def deal_step_currency(callback: CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
     for g_id, g_username, deposit, fee in guarants:
         builder.add(InlineKeyboardButton(
-            text=f"{tg_emoji(EMOJI_CROWN, '👑')} @{g_username} | {fee}% | ${deposit}", 
+            text=f"{tg_emoji(EMOJI_CROWN, '👑')} @{g_username} | {fee}% | ${deposit}",
             callback_data=f"guar_{g_id}"
         ))
     builder.adjust(1)
-    builder.add(InlineKeyboardButton(text=f"{tg_emoji(EMOJI_DANGER, '❌')} Отмена", callback_data="cancel_deal"))
+    builder.add(InlineKeyboardButton(
+        text=f"{tg_emoji(EMOJI_DANGER, '❌')} Отмена",
+        callback_data="cancel_deal"
+    ))
     
     await callback.message.edit_text(
         f"{tg_emoji(EMOJI_CROWN, '🛡')} <b>Создание сделки</b>\n\n"
@@ -375,7 +373,7 @@ async def deal_select_guarantor(callback: CallbackQuery, state: FSMContext):
     cur.execute('''
         INSERT INTO deals (deal_id, buyer_id, seller_id, guarantor_id, amount, currency, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (deal_id, str(callback.from_user.id), data['partner'], 
+    ''', (deal_id, str(callback.from_user.id), data['partner'],
           guarantor_id, data['amount'], data['currency'], "waiting", datetime.now().isoformat()))
     conn.commit()
     conn.close()
@@ -388,6 +386,7 @@ async def deal_select_guarantor(callback: CallbackQuery, state: FSMContext):
         f"⏳ Ожидание подтверждения гаранта..."
     )
     
+    # Уведомление гаранту с эмодзи
     await bot.send_message(
         int(guarantor_id),
         f"{tg_emoji(EMOJI_CROWN, '🛡')} <b>Новая сделка!</b>\n\n"
@@ -396,8 +395,16 @@ async def deal_select_guarantor(callback: CallbackQuery, state: FSMContext):
         f"💰 Сумма: {data['amount']:.2f} {data['currency']}\n\n"
         f"Принять / отклонить?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"{tg_emoji(EMOJI_SUCCESS, '✅')} Принять", callback_data=f"accept_{deal_id}"),
-             InlineKeyboardButton(text=f"{tg_emoji(EMOJI_DANGER, '❌')} Отклонить", callback_data=f"reject_{deal_id}")]
+            [
+                InlineKeyboardButton(
+                    text=f"{tg_emoji(EMOJI_SUCCESS, '✅')} Принять",
+                    callback_data=f"accept_{deal_id}"
+                ),
+                InlineKeyboardButton(
+                    text=f"{tg_emoji(EMOJI_DANGER, '❌')} Отклонить",
+                    callback_data=f"reject_{deal_id}"
+                )
+            ]
         ])
     )
     
@@ -422,7 +429,10 @@ async def accept_deal(callback: CallbackQuery):
     conn.close()
     
     if deal:
-        await bot.send_message(int(deal[0]), f"{tg_emoji(EMOJI_SUCCESS, '✅')} Гарант принял сделку!\nСумма: {deal[2]} {deal[3]}")
+        await bot.send_message(
+            int(deal[0]),
+            f"{tg_emoji(EMOJI_SUCCESS, '✅')} Гарант принял сделку!\nСумма: {deal[2]} {deal[3]}"
+        )
         await callback.message.edit_text(f"{tg_emoji(EMOJI_SUCCESS, '✅')} Сделка #{deal_id} принята")
     await callback.answer()
 
@@ -434,9 +444,24 @@ async def admin_panel(message: Message):
         return
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"{tg_emoji(EMOJI_CROWN, '➕')} Добавить рученика", callback_data="add_garant")],
-        [InlineKeyboardButton(text=f"{tg_emoji(EMOJI_DANGER, '🔴')} Добавить скамера", callback_data="add_scammer")],
-        [InlineKeyboardButton(text=f"{tg_emoji(EMOJI_STAR, '📋')} Список ручеников", callback_data="list_garants")]
+        [
+            InlineKeyboardButton(
+                text=f"{tg_emoji(EMOJI_CROWN, '➕')} Добавить рученика",
+                callback_data="add_garant"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=f"{tg_emoji(EMOJI_DANGER, '🔴')} Добавить скамера",
+                callback_data="add_scammer"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=f"{tg_emoji(EMOJI_STAR, '📋')} Список ручеников",
+                callback_data="list_garants"
+            )
+        ]
     ])
     await message.answer(f"{tg_emoji(EMOJI_CROWN, '🛡')} <b>Панель управления</b>", reply_markup=kb)
 
@@ -460,7 +485,6 @@ async def add_garant_save(message: Message, state: FSMContext):
         data = await state.get_data()
         username = data['garant_username']
         
-        # Здесь нужно получить реальный user_id, пока временный
         temp_id = f"garant_{username}"
         add_garant(temp_id, username, deposit, 2)
         
@@ -486,7 +510,7 @@ async def add_scammer_save(message: Message, state: FSMContext):
     temp_id = f"scammer_{username}"
     add_scammer(temp_id, username)
     
-     await message.answer(
+    await message.answer(
         f"{tg_emoji(EMOJI_DANGER, '🔴')} <b>Скамер добавлен!</b>\n\n"
         f"👤 @{username}\n"
         f"⚠️ Будьте осторожны!"
@@ -544,7 +568,6 @@ async def search_user(message: Message):
         )
         return
     
-    # Формируем вывод в зависимости от статуса
     if user["status"] == "scammer":
         await message.answer(
             f"{tg_emoji(EMOJI_DANGER, '🔴')} <b>ВНИМАНИЕ! SCAMMER!</b>\n\n"
@@ -556,9 +579,11 @@ async def search_user(message: Message):
         )
     elif user["status"] == "garant":
         await message.answer(
-            f"{tg_emoji(EMOJI_CROWN, '👤')} {user['username']} | {user.get('fee', 2)}% - Link | Теги: @{user['username']} | ID: {user['user_id']}\n\n"
+            f"{tg_emoji(EMOJI_CROWN, '👤')} {user['username']} | {user.get('fee', 2)}% - Link | "
+            f"Теги: @{user['username']} | ID: {user['user_id']}\n\n"
             f"👻 @{user['username']} — рученик. Ответственное лицо — Нажми. Депозит: ${user['deposit']}.\n\n"
-            f"➕ {user['plus_count']} | 🚫 {user['minus_count']} | 👁 {user['reports_filed']} | 📈 {user['trust_score']}% | 💎 ${user['deposit']}\n\n"
+            f"➕ {user['plus_count']} | 🚫 {user['minus_count']} | 👁 {user['reports_filed']} | "
+            f"📈 {user['trust_score']}% | 💎 ${user['deposit']}\n\n"
             f"⏰ В Telegram с: ~ {user['reg_date']}\n"
             f"📅 В базе с: {user['base_date']}\n\n"
             f"🛡 Ответственные лица:\n"
@@ -566,8 +591,9 @@ async def search_user(message: Message):
         )
     else:
         await message.answer(
-            f"{tg_emoji(EMOJI_THUMBS_UP, '👤')} {user['username']} - Link | Теги: @{user['username']} | ID: {user['user_id']}\n\n"
-            f"👻 @{user['username']} — обычный пользователь, не найден в 1ndex. Рекомендуется быть осторожным и использовать услуги проверенных гарантов - /mm.\n\n"
+            f"{tg_emoji(EMOJI_LIKE, '👤')} {user['username']} - Link | Теги: @{user['username']} | ID: {user['user_id']}\n\n"
+            f"👻 @{user['username']} — обычный пользователь, не найден в 1ndex. "
+            f"Рекомендуется быть осторожным и использовать услуги проверенных гарантов - /mm.\n\n"
             f"➕ {user['plus_count']} | 🚫 {user['minus_count']} | 👁 {user['reports_filed']} | 📈 {user['trust_score']}%\n\n"
             f"⏰ В Telegram с: ~ {user['reg_date']}\n"
             f"📅 В базе с: {user['base_date']}"
@@ -575,7 +601,7 @@ async def search_user(message: Message):
 
 async def main():
     init_db()
-    print(f"{tg_emoji(EMOJI_SUCCESS, '✅')} Бот Spectra | Verify Bot запущен!")
+    print("✅ Бот Spectra | Verify Bot запущен!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
